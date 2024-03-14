@@ -1,0 +1,16 @@
+{
+  "name": "elm-widgets-charts-alpha",
+  "description": "Development package for elm-widgets-charts",
+  "version": "0.0.1",
+  "license": "MPL-2.0",
+  "author": "Georges Boris",
+  "scripts": {
+    "postinstall": "elm-tooling install",
+    "test": "elm-test-rs",
+    "start": "elm-doc-preview"
+  },
+  "devDependencies": {
+    "elm-doc-preview": "^5.0.5",
+    "elm-tooling": "^1.14.1"
+  }
+}
