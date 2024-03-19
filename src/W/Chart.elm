@@ -1,11 +1,13 @@
 module W.Chart exposing
-    ( globalStyles, fromX, fromXY, fromXYZ, ConfigX, ConfigXY, ConfigXYZ, Config
+    ( globalStyles, fromX, fromXY, fromXYZ, ConfigX, ConfigXY, ConfigXYZ, Config, ChartAttribute
     , xAxis, axis, axisList
     , axisLabel, defaultValue, format, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
-    , width, ratio, padding, background, htmlAttrs, ChartAttribute
+    , width, ratio, background
+    , padding, paddingX, paddingY, paddingCustom
+    , fontSize
     , view, WidgetX, WidgetXY, WidgetXYZ, Widget
-    , withActive, withHover, noTooltip, groupByXY, onClick, onMouseEnter, onMouseLeave, PointX, PointXY, PointXYZ
-    , Point, RenderData, RenderDatum, PointData
+    , withActive, withHover, groupByXY, onClick, onMouseEnter, onMouseLeave, PointX, PointXY, PointXYZ
+    , Context, Coordinates, Point, RenderDatum, AxisDataPoints
     , debug
     )
 
@@ -14,7 +16,7 @@ module W.Chart exposing
 
 # Setup
 
-@docs globalStyles, fromX, fromXY, fromXYZ, ConfigX, ConfigXY, ConfigXYZ, Config
+@docs globalStyles, fromX, fromXY, fromXYZ, ConfigX, ConfigXY, ConfigXYZ, Config, ChartAttribute
 
 
 # Axis
@@ -29,7 +31,23 @@ module W.Chart exposing
 
 # Styles
 
-@docs width, ratio, padding, background, htmlAttrs, ChartAttribute
+
+## Size
+
+@docs width, ratio, background
+
+
+## Padding
+
+@docs padding, paddingX, paddingY, paddingCustom
+
+
+## Colors
+
+
+## Font Sizes
+
+@docs fontSize
 
 
 # Widgets
@@ -39,12 +57,12 @@ module W.Chart exposing
 
 # Interaction
 
-@docs withActive, withHover, noTooltip, groupByXY, onClick, onMouseEnter, onMouseLeave, PointX, PointXY, PointXYZ
+@docs withActive, withHover, groupByXY, onClick, onMouseEnter, onMouseLeave, PointX, PointXY, PointXYZ
 
 
-# Tmp
+# Helpful Types
 
-@docs Point, RenderData, RenderDatum, PointData
+@docs Context, Coordinates, Point, RenderDatum, AxisDataPoints
 
 
 # Debugging
@@ -70,7 +88,6 @@ import TypedSvg.Core as SC
 import TypedSvg.Types as ST
 import W.Chart.Internal
 import W.Chart.Internal.Voronoi
-import W.Chart.Tooltip
 import W.Svg.Attributes
 
 
@@ -96,26 +113,23 @@ type alias ConfigXYZ msg x y z =
 
 {-| -}
 type alias PointX x =
-    W.Chart.Internal.ChartPointData
-        { x : Point x
-        }
+    { x : Point x
+    }
 
 
 {-| -}
 type alias PointXY x y =
-    W.Chart.Internal.ChartPointData
-        { x : Point x
-        , y : List (Point y)
-        }
+    { x : Point x
+    , y : List (Point y)
+    }
 
 
 {-| -}
 type alias PointXYZ x y z =
-    W.Chart.Internal.ChartPointData
-        { x : Point x
-        , y : List (Point y)
-        , z : List (Point z)
-        }
+    { x : Point x
+    , y : List (Point y)
+    , z : List (Point z)
+    }
 
 
 {-| -}
@@ -124,8 +138,8 @@ type alias Point a =
 
 
 {-| -}
-type alias PointData point =
-    W.Chart.Internal.ChartPointData point
+type alias Coordinates =
+    { x : Float, y : Maybe Float }
 
 
 {-| -}
@@ -180,6 +194,11 @@ type alias AxisAttribute =
 
 
 {-| -}
+type alias AxisDataPoints x a =
+    W.Chart.Internal.AxisDataPoints x a
+
+
+{-| -}
 type alias HoverAttribute msg g =
     Attr.Attr (W.Chart.Internal.HoverAttrs msg g)
 
@@ -190,27 +209,8 @@ type alias Context x y z =
 
 
 {-| -}
-type alias RenderData point =
-    W.Chart.Internal.ChartPointData point
-
-
-{-| -}
 type alias RenderDatum =
     W.Chart.Internal.RenderDatum
-
-
-
--- Constants
-
-
-lineStrokeWidth : Float
-lineStrokeWidth =
-    2
-
-
-labelFontSize : Float
-labelFontSize =
-    13
 
 
 
@@ -264,7 +264,7 @@ fromXY =
                 , toPoint =
                     \point ->
                         { x = point.x
-                        , y = point.ys
+                        , y = point.y
                         }
                 , activePoint = Nothing
                 , hover = Nothing
@@ -299,7 +299,7 @@ fromXYZ =
             in
             W.Chart.Internal.Config
                 { attrs = { attrs | xAxis = xAttrs, yAxis = yAttrs, zAxis = zAttrs }
-                , toPoint = \point -> { x = point.x, y = point.ys, z = point.zs }
+                , toPoint = \point -> { x = point.x, y = point.y, z = point.z }
                 , activePoint = Nothing
                 , hover = Nothing
                 , xData = Just xData
@@ -328,7 +328,79 @@ ratio v =
 {-| -}
 padding : Int -> ChartAttribute msg
 padding v =
-    Attr.attr (\a -> { a | padding = toFloat v })
+    Attr.attr
+        (\a ->
+            { a
+                | padding =
+                    { top = toFloat v
+                    , left = toFloat v
+                    , right = toFloat v
+                    , bottom = toFloat v
+                    }
+            }
+        )
+
+
+{-| -}
+paddingX : Int -> ChartAttribute msg
+paddingX v =
+    Attr.attr
+        (\a ->
+            let
+                p : W.Chart.Internal.Padding
+                p =
+                    a.padding
+            in
+            { a
+                | padding =
+                    { p
+                        | left = toFloat v
+                        , right = toFloat v
+                    }
+            }
+        )
+
+
+{-| -}
+paddingY : Int -> ChartAttribute msg
+paddingY v =
+    Attr.attr
+        (\a ->
+            let
+                p : W.Chart.Internal.Padding
+                p =
+                    a.padding
+            in
+            { a
+                | padding =
+                    { p
+                        | top = toFloat v
+                        , bottom = toFloat v
+                    }
+            }
+        )
+
+
+{-| -}
+paddingCustom :
+    { top : Int
+    , left : Int
+    , right : Int
+    , bottom : Int
+    }
+    -> ChartAttribute msg
+paddingCustom v =
+    Attr.attr
+        (\a ->
+            { a
+                | padding =
+                    { top = toFloat v.top
+                    , left = toFloat v.left
+                    , right = toFloat v.right
+                    , bottom = toFloat v.bottom
+                    }
+            }
+        )
 
 
 {-| -}
@@ -338,9 +410,9 @@ background v =
 
 
 {-| -}
-htmlAttrs : List (H.Attribute msg) -> ChartAttribute msg
-htmlAttrs v =
-    Attr.attr (\a -> { a | htmlAttributes = v })
+fontSize : { small : Float, medium : Float, large : Float } -> ChartAttribute msg
+fontSize v =
+    Attr.attr (\a -> { a | fontSize = v })
 
 
 {-| -}
@@ -354,7 +426,7 @@ debug =
 
 
 {-| -}
-withActive : Maybe (W.Chart.Internal.ChartPointData point) -> Config msg x y z point -> Config msg x y z point
+withActive : Maybe Coordinates -> Config msg x y z point -> Config msg x y z point
 withActive v (W.Chart.Internal.Config cfg) =
     W.Chart.Internal.Config { cfg | activePoint = v }
 
@@ -364,7 +436,6 @@ withHover : List (HoverAttribute msg point) -> Config msg x y z point -> Config 
 withHover =
     Attr.withAttrs
         { nearest = False
-        , tooltip = True
         , onClick = Nothing
         , onMouseEnter = Nothing
         , onMouseLeave = Nothing
@@ -376,27 +447,21 @@ withHover =
 
 
 {-| -}
-onClick : (W.Chart.Internal.ChartPointData point -> msg) -> HoverAttribute msg point
+onClick : ({ x : Float, y : Maybe Float } -> point -> msg) -> HoverAttribute msg point
 onClick fn =
     Attr.attr (\a -> { a | onClick = Just fn })
 
 
 {-| -}
-onMouseEnter : (W.Chart.Internal.ChartPointData point -> msg) -> HoverAttribute msg point
+onMouseEnter : ({ x : Float, y : Maybe Float } -> point -> msg) -> HoverAttribute msg point
 onMouseEnter fn =
     Attr.attr (\a -> { a | onMouseEnter = Just fn })
 
 
 {-| -}
-onMouseLeave : (W.Chart.Internal.ChartPointData point -> msg) -> HoverAttribute msg point
+onMouseLeave : ({ x : Float, y : Maybe Float } -> point -> msg) -> HoverAttribute msg point
 onMouseLeave fn =
     Attr.attr (\a -> { a | onMouseLeave = Just fn })
-
-
-{-| -}
-noTooltip : HoverAttribute msg point
-noTooltip =
-    Attr.attr (\a -> { a | tooltip = False })
 
 
 {-| -}
@@ -556,6 +621,15 @@ view widgets (W.Chart.Internal.Config cfg) =
                         [ ( "m--unfocus", True || cfg.hover /= Nothing )
                         , ( "m--debug", d.attrs.debug )
                         ]
+                    , HA.attribute "style"
+                        ("--ew-font-sm:"
+                            ++ String.fromFloat d.ctx.fontSize.sm
+                            ++ "px;--ew-font-md:"
+                            ++ String.fromFloat d.ctx.fontSize.md
+                            ++ "px;--ew-font-lg:"
+                            ++ String.fromFloat d.ctx.fontSize.lg
+                            ++ "px"
+                        )
                     ]
                     [ Svg.svg
                         [ SA.viewBox 0 0 d.spacings.canvas.width d.spacings.canvas.height
@@ -580,8 +654,8 @@ view widgets (W.Chart.Internal.Config cfg) =
                             , viewWidgets "bg" .background renderData widgets
                             , viewWidgets "main" .main renderData widgets
                             , viewWidgets "fg" .foreground renderData widgets
-                            , viewHover cfg renderData widgets
-                            , viewActive cfg renderData widgets
+                            , viewActive cfg d.ctx widgets
+                            , viewHover cfg d.ctx widgets
                             ]
                         ]
                     ]
@@ -605,53 +679,40 @@ viewWidgets class getter (W.Chart.Internal.RenderData { ctx }) widgets =
         |> S.g [ SA.class [ "ew-charts--" ++ class ] ]
 
 
-viewActive :
-    W.Chart.Internal.ConfigData msg x y z point
-    -> W.Chart.Internal.RenderData msg x y z
-    -> List (W.Chart.Internal.Widget msg x y z point)
-    -> SC.Svg msg
-viewActive cfg (W.Chart.Internal.RenderData d) widgets =
-    cfg.activePoint
-        |> Maybe.map
-            (\pointData ->
-                viewChartPoint
-                    d
-                    pointData
-                    widgets
-                    True
-                    ( pointData.pos.x, pointData.pos.y )
-                    |> S.g [ Svg.Attributes.class "ew-charts--active" ]
-            )
-        |> Maybe.withDefault (H.text "")
-
-
 
 -- Hover Elements
 
 
-viewHover :
+viewActive :
     W.Chart.Internal.ConfigData msg x y z point
-    -> W.Chart.Internal.RenderData msg x y z
+    -> W.Chart.Internal.Context x y z
     -> List (W.Chart.Internal.Widget msg x y z point)
     -> SC.Svg msg
-viewHover cfg (W.Chart.Internal.RenderData d) widgets =
-    cfg.hover
+viewActive config ctx widgets =
+    config.activePoint
+        |> Maybe.andThen (\coords -> W.Chart.Internal.dataFromCoords coords ctx)
         |> Maybe.map
-            (\hoverAttrs_ ->
-                let
-                    hoverAttrs : W.Chart.Internal.HoverAttrs msg point
-                    hoverAttrs =
-                        if cfg.activePoint == Nothing then
-                            hoverAttrs_
+            (\point ->
+                S.g [ Svg.Attributes.class "ew-charts--active" ]
+                    (viewChartPoint ctx ( point, config.toPoint point ) widgets)
+            )
+        |> Maybe.withDefault (H.text "")
 
-                        else
-                            { hoverAttrs_ | tooltip = False }
-                in
+
+viewHover :
+    W.Chart.Internal.ConfigData msg x y z point
+    -> W.Chart.Internal.Context x y z
+    -> List (W.Chart.Internal.Widget msg x y z point)
+    -> SC.Svg msg
+viewHover config ctx widgets =
+    config.hover
+        |> Maybe.map
+            (\hoverAttrs ->
                 if hoverAttrs.nearest then
-                    viewHoverNearest cfg hoverAttrs d widgets
+                    viewHoverNearest config hoverAttrs ctx widgets
 
                 else
-                    viewHoverX cfg hoverAttrs d widgets
+                    viewHoverX config hoverAttrs ctx widgets
             )
         |> Maybe.withDefault (H.text "")
 
@@ -659,39 +720,46 @@ viewHover cfg (W.Chart.Internal.RenderData d) widgets =
 viewHoverX :
     W.Chart.Internal.ConfigData msg x y z point
     -> W.Chart.Internal.HoverAttrs msg point
-    -> W.Chart.Internal.RenderDataFull msg x y z
+    -> W.Chart.Internal.Context x y z
     -> List (W.Chart.Internal.Widget msg x y z point)
     -> SC.Svg msg
-viewHoverX cfg hoverAttrs d widgets =
-    d.points.byX
+viewHoverX config hoverAttrs ctx widgets =
+    ctx.points.byX
         |> Dict.values
-        |> List.concatMap
-            (\xData ->
+        |> List.filter
+            (\pointData ->
                 let
-                    point : W.Chart.Internal.ChartPointData point
+                    yCheck : Bool
+                    yCheck =
+                        List.any (not << .isDefault << .render) pointData.y
+
+                    zCheck : Bool
+                    zCheck =
+                        List.any (not << .isDefault << .render) pointData.z
+                in
+                yCheck || zCheck
+            )
+        |> List.concatMap
+            (\pointData ->
+                let
+                    point : point
                     point =
-                        { point = cfg.toPoint xData
-                        , pos = xData.pos
-                        , x = xData.xRender
-                        , y = xData.yRender
-                        , z = xData.zRender
-                        }
+                        config.toPoint pointData
                 in
                 [ S.rect
-                    ([ SAP.x xData.x.render.valueStart
+                    ([ SAP.x pointData.x.render.valueStart
                      , SAP.y 0
-                     , SAP.width (Scale.bandwidth d.x.bandScale)
-                     , SAP.height d.spacings.chart.height
+                     , SAP.width (Scale.bandwidth ctx.x.binScale)
+                     , SAP.height ctx.height
                      ]
-                        ++ viewHoverAttrs hoverAttrs point
+                        ++ viewHoverAttrs hoverAttrs pointData point
                     )
                     []
                 , viewHoverContent
-                    hoverAttrs
-                    d
+                    ctx
+                    pointData
                     point
                     widgets
-                    ( xData.x.render.valueScaled, 0.0 )
                 ]
             )
         |> S.g []
@@ -700,116 +768,95 @@ viewHoverX cfg hoverAttrs d widgets =
 viewHoverNearest :
     W.Chart.Internal.ConfigData msg x y z point
     -> W.Chart.Internal.HoverAttrs msg point
-    -> W.Chart.Internal.RenderDataFull msg x y z
+    -> W.Chart.Internal.Context x y z
     -> List (W.Chart.Internal.Widget msg x y z point)
     -> SC.Svg msg
-viewHoverNearest cfg hoverAttrs d widgets =
+viewHoverNearest config hoverAttrs ctx widgets =
     W.Chart.Internal.Voronoi.view
-        (\( x, y ) hoverData polygon ->
+        (\pointData polygon ->
             let
-                point : W.Chart.Internal.ChartPointData point
+                point : point
                 point =
-                    { point = cfg.toPoint hoverData
-                    , pos = hoverData.pos
-                    , x = hoverData.xRender
-                    , y = hoverData.yRender
-                    , z = hoverData.zRender
-                    }
+                    config.toPoint pointData
             in
-            [ polygon (viewHoverAttrs hoverAttrs point)
-            , viewHoverContent
-                hoverAttrs
-                d
-                point
-                widgets
-                ( x, y )
+            [ polygon (viewHoverAttrs hoverAttrs pointData point)
+            , viewHoverContent ctx pointData point widgets
             ]
         )
-        d
+        ctx
 
 
 viewHoverContent :
-    W.Chart.Internal.HoverAttrs msg point
-    -> W.Chart.Internal.RenderDataFull msg x y z
-    -> PointData point
+    W.Chart.Internal.Context x y z
+    -> W.Chart.Internal.ChartPoint x y z
+    -> point
     -> List (W.Chart.Internal.Widget msg x y z point)
-    -> ( Float, Float )
     -> SC.Svg msg
-viewHoverContent hoverAttrs d pointData widgets ( x, y ) =
+viewHoverContent ctx pointData point widgets =
     S.g
         [ SA.class [ "ew-charts--hover" ] ]
-        ((if d.attrs.debug then
+        (viewChartPointCoords ctx pointData :: viewChartPoint ctx ( pointData, point ) widgets)
+
+
+viewChartPointCoords :
+    W.Chart.Internal.Context x y z
+    -> W.Chart.Internal.ChartPoint x y z
+    -> SC.Svg msg
+viewChartPointCoords ctx point =
+    case ( ctx.isDebugging, point.pos.y ) of
+        ( True, Just y ) ->
             S.circle
-                [ SAP.cx x
+                [ SAP.cx point.pos.x
                 , SAP.cy y
                 , SAP.r 2.0
                 , Svg.Attributes.fill "red"
                 ]
                 []
 
-          else
+        _ ->
             H.text ""
-         )
-            :: viewChartPoint
-                d
-                pointData
-                widgets
-                hoverAttrs.tooltip
-                ( x, y )
-        )
 
 
 viewChartPoint :
-    W.Chart.Internal.RenderDataFull msg x y z
-    -> PointData point
+    W.Chart.Internal.Context x y z
+    -> ( W.Chart.Internal.ChartPoint x y z, point )
     -> List (W.Chart.Internal.Widget msg x y z point)
-    -> Bool
-    -> ( Float, Float )
     -> List (SC.Svg msg)
-viewChartPoint d pointData widgets showTooltip ( x, y ) =
-    let
-        bandwidth : Float
-        bandwidth =
-            Scale.bandwidth d.x.bandScale
+viewChartPoint ctx ( pointData, point ) widgets =
+    [ viewHoverWidgets ctx pointData point widgets
 
-        tooltipMargin : Float
-        tooltipMargin =
-            bandwidth * 0.5
-    in
-    [ viewHoverWidgets d.ctx pointData widgets
-    , if showTooltip then
-        W.Chart.Tooltip.view d
-            x
-            y
-            tooltipMargin
-            [ W.Chart.Tooltip.viewPoints d pointData ]
-
-      else
-        H.text ""
+    -- , if config.activePoint == Nothing then
+    --     W.Chart.Internal.Tooltip.view ctx
+    --         pointData
+    --         tooltipMargin
+    --         [ W.Chart.Internal.Tooltip.viewPoints ctx pointData ]
+    --   else
+    --     H.text ""
     ]
 
 
-viewHoverAttrs : W.Chart.Internal.HoverAttrs msg point -> W.Chart.Internal.ChartPointData point -> List (Svg.Attribute msg)
-viewHoverAttrs hoverAttrs point =
+viewHoverAttrs : W.Chart.Internal.HoverAttrs msg point -> W.Chart.Internal.ChartPoint x y z -> point -> List (Svg.Attribute msg)
+viewHoverAttrs hoverAttrs pointData point =
     [ SA.class [ "ew-charts--hover-target" ]
     , Svg.Attributes.fill "transparent"
-    , W.Svg.Attributes.maybe hoverAttrs.onClick (\fn -> Svg.Events.onClick (fn point))
-    , W.Svg.Attributes.maybe hoverAttrs.onMouseEnter (\fn -> Svg.Events.onMouseOver (fn point))
-    , W.Svg.Attributes.maybe hoverAttrs.onMouseLeave (\fn -> Svg.Events.onMouseOut (fn point))
+    , W.Svg.Attributes.maybe hoverAttrs.onClick (\fn -> Svg.Events.onClick (fn pointData.pos point))
+    , W.Svg.Attributes.maybe hoverAttrs.onMouseEnter (\fn -> Svg.Events.onMouseOver (fn pointData.pos point))
+    , W.Svg.Attributes.maybe hoverAttrs.onMouseLeave (\fn -> Svg.Events.onMouseOut (fn pointData.pos point))
     ]
 
 
 viewHoverWidgets :
     Context x y z
-    -> PointData point
+    -> W.Chart.Internal.ChartPoint x y z
+    -> point
     -> List (W.Chart.Internal.Widget msg x y z point)
     -> SC.Svg msg
-viewHoverWidgets ctx point widgets =
+viewHoverWidgets ctx pointData point widgets =
     widgets
         |> List.filterMap
             (\(W.Chart.Internal.Widget w) ->
                 w.hover
-                    |> Maybe.map (\fn -> fn ctx point)
+                    |> Maybe.map (\fn -> fn ctx pointData.pos point)
             )
         |> W.Chart.Internal.maybeIf (not << List.isEmpty)
         |> Maybe.map (S.g [])
@@ -829,12 +876,13 @@ viewLabels (W.Chart.Internal.RenderData d) =
             |> Maybe.map
                 (\label ->
                     W.Chart.Internal.viewTranslate
-                        { x = d.attrs.padding * 0.5 + labelFontSize * 0.5
+                        { x = d.ctx.fontSize.lg * 1.75
                         , y = d.spacings.padding.top + d.spacings.chart.height * 0.5
                         }
                         [ S.text_
                             [ SA.transform [ ST.Rotate 270 0 0 ]
                             , SA.textAnchor ST.AnchorMiddle
+                            , SAP.fontSize d.ctx.fontSize.lg
                             , SAP.x 0
                             , SAP.y 0
                             , Svg.Attributes.fill (Theme.baseForegroundWithAlpha 0.8)
@@ -848,12 +896,13 @@ viewLabels (W.Chart.Internal.RenderData d) =
             |> Maybe.map
                 (\label ->
                     W.Chart.Internal.viewTranslate
-                        { x = d.spacings.canvas.width - d.attrs.padding * 0.5 - labelFontSize * 0.5
+                        { x = d.spacings.canvas.width - d.ctx.fontSize.lg * 1.75
                         , y = d.spacings.padding.top + d.spacings.chart.height * 0.5
                         }
                         [ S.text_
                             [ SA.transform [ ST.Rotate 90 0 0 ]
                             , SA.textAnchor ST.AnchorMiddle
+                            , SAP.fontSize d.ctx.fontSize.lg
                             , SAP.x 0
                             , SAP.y 0
                             , Svg.Attributes.fill (Theme.baseForegroundWithAlpha 0.8)
@@ -865,18 +914,14 @@ viewLabels (W.Chart.Internal.RenderData d) =
         , d.attrs.xAxis.label
             |> Maybe.map
                 (\label ->
-                    W.Chart.Internal.viewTranslate
-                        { x = d.spacings.padding.left + d.spacings.chart.width * 0.5
-                        , y = d.spacings.canvas.height - d.attrs.padding * 0.5 + labelFontSize * 0.5
-                        }
-                        [ S.text_
-                            [ SA.textAnchor ST.AnchorMiddle
-                            , SAP.x 0
-                            , SAP.y 0
-                            , Svg.Attributes.fill (Theme.baseForegroundWithAlpha 0.8)
-                            ]
-                            [ SC.text label ]
+                    S.text_
+                        [ SA.textAnchor ST.AnchorMiddle
+                        , SAP.fontSize d.ctx.fontSize.lg
+                        , SAP.x (d.spacings.padding.left + d.spacings.chart.width * 0.5)
+                        , SAP.y (d.spacings.canvas.height - d.ctx.fontSize.lg * 0.75)
+                        , Svg.Attributes.fill (Theme.baseForegroundWithAlpha 0.8)
                         ]
+                        [ SC.text label ]
                 )
             |> Maybe.withDefault (H.text "")
         ]
@@ -917,28 +962,20 @@ viewYGrid (W.Chart.Internal.RenderData d) =
 viewXGrid : Context x y z -> SC.Svg msg
 viewXGrid ctx =
     if ctx.x.showGrid then
-        let
-            step : Int
-            step =
-                List.length ctx.x.data // ctx.x.ticks
-        in
         ctx.points.byX
             |> Dict.values
-            |> List.indexedMap
-                (\index { x } ->
-                    if modBy step index == 0 then
-                        S.line
-                            [ SAP.x1 x.render.valueScaled
-                            , SAP.x2 x.render.valueScaled
-                            , SAP.y1 0
-                            , SAP.y2 ctx.y.range
-                            , SA.strokeWidth (ST.px 1.0)
-                            , Svg.Attributes.stroke (Theme.baseAuxWithAlpha 0.1)
-                            ]
-                            []
-
-                    else
-                        H.text ""
+            |> toSteps ctx.x.ticks
+            |> List.map
+                (\{ x } ->
+                    S.line
+                        [ SAP.x1 x.render.valueScaled
+                        , SAP.x2 x.render.valueScaled
+                        , SAP.y1 0
+                        , SAP.y2 ctx.height
+                        , SA.strokeWidth (ST.px 1.0)
+                        , Svg.Attributes.stroke (Theme.baseAuxWithAlpha 0.1)
+                        ]
+                        []
                 )
             |> S.g []
 
@@ -946,44 +983,88 @@ viewXGrid ctx =
         H.text ""
 
 
+toSteps : Int -> List a -> List a
+toSteps ticks_ xs =
+    let
+        length : Int
+        length =
+            List.length xs
+
+        mod : Int
+        mod =
+            ticks_
+                |> min length
+                |> max 1
+                |> (\t -> length // t)
+    in
+    xs
+        |> List.foldl
+            (\x ( index, acc ) ->
+                ( index + 1
+                , if index == length - 1 || modBy mod index == 0 then
+                    x :: acc
+
+                  else
+                    acc
+                )
+            )
+            ( 0, [] )
+        |> Tuple.second
+        |> List.reverse
+
+
 viewXAxis : Context x y z -> SC.Svg msg
 viewXAxis ctx =
     if ctx.x.showAxis then
-        let
-            step : Int
-            step =
-                List.length ctx.x.data // ctx.x.ticks
-        in
-        W.Chart.Internal.viewTranslate
-            { x = 0
-            , y = ctx.y.range
-            }
+        S.g []
             [ S.line
                 [ SAP.x1 0
-                , SAP.x2 ctx.x.range
+                , SAP.x2 ctx.width
                 , SAP.y1 0
                 , SAP.y2 0
-                , SAP.strokeWidth 2
-                , Svg.Attributes.stroke Theme.baseAux
+                , SAP.strokeWidth 1
+                , Svg.Attributes.stroke (Theme.baseAuxWithAlpha 0.1)
                 ]
                 []
-            , ctx.x.data
-                |> List.indexedMap
-                    (\index x ->
-                        if modBy step index == 0 then
-                            S.text_
-                                [ SA.textAnchor ST.AnchorMiddle
-                                , SAP.y (labelFontSize + 8)
-                                , SAP.x (Scale.convert ctx.x.scale x)
-                                , Svg.Attributes.fill (Theme.baseForegroundWithAlpha 0.6)
-                                , SAP.fontSize labelFontSize
+            , W.Chart.Internal.viewTranslate
+                { x = 0
+                , y = ctx.height
+                }
+                [ S.line
+                    [ SAP.x1 0
+                    , SAP.x2 ctx.width
+                    , SAP.y1 0
+                    , SAP.y2 0
+                    , SAP.strokeWidth 1
+                    , Svg.Attributes.stroke (Theme.baseAuxWithAlpha 0.2)
+                    ]
+                    []
+                , ctx.points.byX
+                    |> Dict.values
+                    |> toSteps ctx.x.ticks
+                    |> List.concatMap
+                        (\xData ->
+                            [ S.line
+                                [ SAP.x1 xData.x.render.valueScaled
+                                , SAP.x2 xData.x.render.valueScaled
+                                , SAP.y1 0
+                                , SAP.y2 6
+                                , SAP.strokeWidth 1
+                                , Svg.Attributes.stroke (Theme.baseAuxWithAlpha 0.2)
                                 ]
-                                [ SC.text (ctx.x.format x) ]
-
-                        else
-                            H.text ""
-                    )
-                |> S.g []
+                                []
+                            , S.text_
+                                [ SA.textAnchor ST.AnchorMiddle
+                                , SAP.y (ctx.fontSize.sm * 2)
+                                , SAP.x xData.x.render.valueScaled
+                                , Svg.Attributes.fill (Theme.baseForegroundWithAlpha 0.6)
+                                , SAP.fontSize ctx.fontSize.sm
+                                ]
+                                [ SC.text xData.x.render.label ]
+                            ]
+                        )
+                    |> S.g []
+                ]
             ]
 
     else
@@ -994,6 +1075,15 @@ viewYAxis : W.Chart.Internal.RenderData msg x y z -> SC.Svg msg
 viewYAxis (W.Chart.Internal.RenderData d) =
     case ( d.attrs.yAxis.showAxis, d.y ) of
         ( True, Just _ ) ->
+            let
+                axisFormat : Float -> String
+                axisFormat =
+                    if d.ctx.y.isDistribution then
+                        W.Chart.Internal.formatPct
+
+                    else
+                        d.ctx.y.format
+            in
             W.Chart.Internal.viewTranslate
                 { x = d.spacings.padding.left
                 , y = d.spacings.padding.top
@@ -1003,8 +1093,8 @@ viewYAxis (W.Chart.Internal.RenderData d) =
                     [ viewAxis
                         Axis.left
                         { ticks = d.ctx.y.ticks
-                        , format = d.ctx.y.format
                         , scale = d.ctx.y.scale
+                        , format = axisFormat
                         }
                     ]
                 ]
@@ -1017,6 +1107,15 @@ viewZAxis : W.Chart.Internal.RenderData msg x y z -> SC.Svg msg
 viewZAxis (W.Chart.Internal.RenderData d) =
     case ( d.attrs.zAxis.showAxis, d.z ) of
         ( True, Just _ ) ->
+            let
+                axisFormat : Float -> String
+                axisFormat =
+                    if d.ctx.z.isDistribution then
+                        W.Chart.Internal.formatPct
+
+                    else
+                        d.ctx.z.format
+            in
             W.Chart.Internal.viewTranslate
                 { x = d.spacings.padding.left + d.spacings.chart.width
                 , y = d.spacings.padding.top
@@ -1026,8 +1125,8 @@ viewZAxis (W.Chart.Internal.RenderData d) =
                     [ viewAxis
                         Axis.right
                         { ticks = d.ctx.z.ticks
-                        , format = d.ctx.z.format
                         , scale = d.ctx.z.scale
+                        , format = axisFormat
                         }
                     ]
                 ]
@@ -1059,46 +1158,6 @@ viewAxis axis_ props =
         props.scale
 
 
-viewHLine :
-    { yValue : Float
-    , strokeWidth : Float
-    , stroke : String
-    , xScale : Axis.RenderableScale x domain range Float
-    , yScale : Axis.RenderableScale x domain range Float
-    }
-    -> SC.Svg msg
-viewHLine props =
-    S.line
-        [ SA.x1 (ST.px (Tuple.first (Scale.rangeExtent props.xScale)))
-        , SA.x2 (ST.px (Tuple.second (Scale.rangeExtent props.xScale)))
-        , SA.y1 (ST.px (Scale.convert props.yScale props.yValue))
-        , SA.y2 (ST.px (Scale.convert props.yScale props.yValue))
-        , SA.strokeWidth (ST.px props.strokeWidth)
-        , Svg.Attributes.stroke props.stroke
-        ]
-        []
-
-
-viewVLine :
-    { xValue : Float
-    , strokeWidth : Float
-    , stroke : String
-    , xScale : Axis.RenderableScale x domain range Float
-    , yScale : Axis.RenderableScale x domain range Float
-    }
-    -> SC.Svg msg
-viewVLine props =
-    S.line
-        [ SA.x1 (ST.px (Scale.convert props.xScale props.xValue))
-        , SA.x2 (ST.px (Scale.convert props.xScale props.xValue))
-        , SA.y1 (ST.px (Tuple.first (Scale.rangeExtent props.yScale)))
-        , SA.y2 (ST.px (Tuple.second (Scale.rangeExtent props.yScale)))
-        , SA.strokeWidth (ST.px props.strokeWidth)
-        , Svg.Attributes.stroke props.stroke
-        ]
-        []
-
-
 
 -- Styles
 
@@ -1111,9 +1170,8 @@ globalStyles =
         [ H.text ("""
             /* Basics */
 
-            .ew-charts text {
+            .ew-charts {
                 font-family: var(--theme-font-text), sans-serif;
-                font-size: 13px;
             }
 
             /* Prevent Tooltip Clipping */
@@ -1160,9 +1218,10 @@ globalStyles =
                 align-items: flex-end;
                 justify-content: flex-start;
                 box-sizing: border-box;
-                font-family: var(--theme-font-text), sans-serif;
-                font-size: 12px;
+                font-family: inherit;
+                font-size: var(--ew-font-md);
                 line-height: 1;
+                padding: 8px 0;
             }
             .ew-charts--tooltip.m--align-left {
                 justify-content: flex-end;
@@ -1170,12 +1229,21 @@ globalStyles =
             .ew-charts--tooltip.m--align-top {
                 align-items: flex-start;
             }
+            .ew-charts--tooltip.m--align-center {
+                align-items: center;
+            }
 
             .ew-charts--tooltip-x,
             .ew-charts--tooltip-yz--label,
             .ew-charts--tooltip-yz--list,
             .ew-charts--tooltip-yz--item {
                 margin: 0;
+            }
+
+            .ew-charts--tooltip-yz--label {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
             }
 
             .ew-charts--tooltip-x {
@@ -1231,25 +1299,20 @@ globalStyles =
             .ew-charts .tick text {
                 fill: """ ++ Theme.baseAux ++ """;
                 font-family: var(--theme-font-text), sans-serif;
-                font-size: 12px;
+                font-size: var(--ew-font-sm);
             }
 
             .ew-charts--x-axis path.domain,
             .ew-charts--y-axis path.domain,
             .ew-charts--z-axis path.domain {
-                stroke: """ ++ Theme.baseAux ++ """;
-                stroke-width: """ ++ String.fromFloat lineStrokeWidth ++ """px;
+                stroke: """ ++ Theme.baseAuxWithAlpha 0.1 ++ """;
+                stroke-width: """ ++ String.fromFloat 1 ++ """px;
             }
 
             .ew-charts--x-axis .tick line,
             .ew-charts--y-axis .tick line,
             .ew-charts--z-axis .tick line {
-                stroke: """ ++ Theme.baseAux ++ """;
-            }
-
-            .ew-charts--y-axis path.domain,
-            .ew-charts--y-axis .tick line {
-                display: none;
+                stroke: """ ++ Theme.baseAuxWithAlpha 0.2 ++ """;
             }
 
             /* Animations */

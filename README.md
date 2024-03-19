@@ -8,6 +8,8 @@ It is **NOT** advisable to use it in your projects - please wait until the stabl
 
 **Look above! Unstable!**
 
+---
+
 **elm-widgets-charts** is a composable and extensible charting library inspired by [terezka/elm-charts](https://www.elm-charts.org) and built on top of [gampleman/elm-visualization](https://package.elm-lang.org/packages/gampleman/elm-visualization/latest/).
 
 - **gampleman/elm-visualization** is an incredible low-level library that has basically everything you need to build really custom charts. However, the learning curve can be a bit high, especially for developers that need to get things done fast and can't really spend the time learning how to build great visualizations.

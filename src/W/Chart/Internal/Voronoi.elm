@@ -13,16 +13,29 @@ import VoronoiDiagram2d
 import W.Chart.Internal
 
 
-view : (( Float, Float ) -> W.Chart.Internal.ChartPoint x y z -> (List (Svg.Attribute msg) -> Svg.Svg msg) -> List (Svg.Svg msg)) -> W.Chart.Internal.RenderDataFull msg x y z -> Svg.Svg msg
-view fn d =
+view : (W.Chart.Internal.ChartPoint x y z -> (List (Svg.Attribute msg) -> Svg.Svg msg) -> List (Svg.Svg msg)) -> W.Chart.Internal.Context x y z -> Svg.Svg msg
+view fn ctx =
     let
         voronoiResult :
             Result
                 (VoronoiDiagram2d.Error ( ( Float, Float ), W.Chart.Internal.ChartPoint x y z ))
                 (VoronoiDiagram2d.VoronoiDiagram2d ( ( Float, Float ), W.Chart.Internal.ChartPoint x y z ) Pixels.Pixels Float)
         voronoiResult =
-            d.points.byXY
+            ctx.points.byXY
                 |> Dict.toList
+                |> List.filter
+                    (\( _, dp ) ->
+                        let
+                            yCheck : Bool
+                            yCheck =
+                                List.any (not << .isDefault << .render) dp.y
+
+                            zCheck : Bool
+                            zCheck =
+                                List.any (not << .isDefault << .render) dp.z
+                        in
+                        yCheck || zCheck
+                    )
                 |> Array.fromList
                 |> VoronoiDiagram2d.fromVerticesBy (\( ( x, y ), _ ) -> Point2d.pixels x y)
 
@@ -30,7 +43,7 @@ view fn d =
         boundingBox =
             BoundingBox2d.from
                 (Point2d.pixels 0 0)
-                (Point2d.pixels d.spacings.chart.width d.spacings.chart.height)
+                (Point2d.pixels ctx.width ctx.height)
     in
     voronoiResult
         |> Result.map
@@ -38,8 +51,8 @@ view fn d =
                 result
                     |> VoronoiDiagram2d.polygons boundingBox
                     |> List.concatMap
-                        (\( ( xy, data ), polygon ) ->
-                            fn xy data (viewPolygon polygon)
+                        (\( ( _, data ), polygon ) ->
+                            fn data (viewPolygon polygon)
                         )
             )
         |> Result.withDefault []

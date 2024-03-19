@@ -4,7 +4,7 @@
     "postinstall": "elm-tooling install",
     "start": "run-pty % npm run start:elm % npm run start:http",
     "start:elm": "elm-watch hot",
-    "start:http": "serve public"
+    "start:http": "serve public -s"
   },
   "devDependencies": {
     "elm-tooling": "^1.14.1",

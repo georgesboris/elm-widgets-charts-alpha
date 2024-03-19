@@ -1,49 +1,60 @@
 module Main exposing (main)
 
 import Browser
-import Color
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Html as H
 import Html.Attributes as HA
-import Scale.Color
 import Theme
 import Time exposing (Month(..))
 import W.Chart
 import W.Chart.Bar
-import W.Chart.Bubble
 import W.Chart.Colors
 import W.Chart.Line
+import W.Chart.Tooltip
 import W.Styles
 
 
+
+-- type alias Point =
+--     W.Chart.PointXYZ Date.Date Int TrigFunction
+
+
 type alias Point =
-    W.Chart.PointXYZ Date.Date Int TrigFunction
+    W.Chart.PointXY Date.Date Int
 
 
 type alias Model =
-    { onClick : Maybe Point
-    , onHover : Maybe Point
+    { onClick : Maybe ( W.Chart.Coordinates, String )
+    , onHover : Maybe ( W.Chart.Coordinates, String )
     }
 
 
 type Msg
-    = OnClick Point
-    | OnMouseEnter Point
-    | OnMouseLeave Point
+    = OnClick W.Chart.Coordinates String
+    | OnMouseEnter W.Chart.Coordinates String
+    | OnMouseLeave
 
 
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        OnClick v ->
-            { model | onClick = Just v }
+        OnClick coords color ->
+            { model | onClick = Just ( coords, color ) }
 
-        OnMouseEnter v ->
-            { model | onHover = Just v }
+        OnMouseEnter coords color ->
+            { model | onHover = Just ( coords, color ) }
 
-        OnMouseLeave _ ->
+        OnMouseLeave ->
             { model | onHover = Nothing }
+
+
+toColor : Point -> String
+toColor point =
+    point.y
+        |> List.head
+        |> Maybe.map (.render >> .color)
+        |> Maybe.withDefault "black"
 
 
 
@@ -57,7 +68,7 @@ date =
 
 dates : List Date
 dates =
-    List.range 1 31
+    List.range 1 3
         |> List.map (\i -> Date.fromCalendarDate 2023 Jan i)
 
 
@@ -86,37 +97,6 @@ purchasesList =
     ]
 
 
-products : List String
-products =
-    [ "Ball", "Hero", "Lego" ]
-
-
-purchasesByProductList : List ( String, Date, Float )
-purchasesByProductList =
-    [ ( "Ball", date 2023 Jan 1, 3 )
-    , ( "Ball", date 2023 Jan 2, 2 )
-    , ( "Ball", date 2023 Jan 3, 5 )
-    , ( "Ball", date 2023 Jan 4, 8 )
-    , ( "Ball", date 2023 Jan 5, 10 )
-    , ( "Ball", date 2023 Jan 6, 8 )
-    , ( "Ball", date 2023 Jan 7, 6 )
-    , ( "Hero", date 2023 Jan 1, 4 )
-    , ( "Hero", date 2023 Jan 2, 3 )
-    , ( "Hero", date 2023 Jan 3, 6 )
-    , ( "Hero", date 2023 Jan 4, 8 )
-    , ( "Hero", date 2023 Jan 5, 12 )
-    , ( "Hero", date 2023 Jan 6, 9 )
-    , ( "Hero", date 2023 Jan 7, 5 )
-    , ( "Lego", date 2023 Jan 1, 3 )
-    , ( "Lego", date 2023 Jan 2, 2 )
-    , ( "Lego", date 2023 Jan 3, 2 )
-    , ( "Lego", date 2023 Jan 4, 4 )
-    , ( "Lego", date 2023 Jan 5, 2 )
-    , ( "Lego", date 2023 Jan 6, 3 )
-    , ( "Lego", date 2023 Jan 7, 0 )
-    ]
-
-
 
 -- Some Helpers (for now)
 
@@ -128,38 +108,9 @@ purchasesDict =
         |> Dict.fromList
 
 
-impressionsDict : Dict Int Float
-impressionsDict =
-    impressionsList
-        |> List.map (Tuple.mapFirst Date.toRataDie)
-        |> Dict.fromList
-
-
-impressionsByDay : Date -> Maybe Float
-impressionsByDay day =
-    Dict.get (Date.toRataDie day) impressionsDict
-
-
 purchasesByDay : Date -> Maybe Float
 purchasesByDay day =
     Dict.get (Date.toRataDie day) purchasesDict
-
-
-purchasesByProduct : Dict ( String, Int ) Float
-purchasesByProduct =
-    purchasesByProductList
-        |> List.map (\( p, d, v ) -> ( ( p, Date.toRataDie d ), v ))
-        |> Dict.fromList
-
-
-purchasesByProductByDay : String -> Date -> Maybe Float
-purchasesByProductByDay product day =
-    Dict.get (Date.toRataDie day) purchasesDict
-
-
-formatMoney : Float -> String
-formatMoney v =
-    "$" ++ String.fromFloat v
 
 
 
@@ -174,58 +125,143 @@ main =
         , view =
             \model ->
                 let
-                    chartConfig : W.Chart.ConfigXYZ Msg Date.Date Int TrigFunction
+                    chartConfig : W.Chart.ConfigXY Msg Date.Date Int
                     chartConfig =
-                        W.Chart.fromXYZ []
+                        W.Chart.fromXY []
                             { x =
-                                W.Chart.xAxis []
+                                W.Chart.xAxis [ W.Chart.ticks 6, W.Chart.axisLabel "X Axis" ]
                                     { data = dates
                                     , toLabel = Date.format "MMM d"
                                     }
                             , y =
-                                W.Chart.axisList [ W.Chart.stacked ]
+                                W.Chart.axisList
+                                    [ W.Chart.axisLabel "Y Axis"
+                                    , W.Chart.distribution
+                                    ]
                                     { data = List.range 0 9
                                     , toLabel = String.fromInt
                                     , toColor = W.Chart.Colors.colorFrom W.Chart.Colors.rainbow
                                     , toValue = \_ -> purchasesByDay
                                     }
-                            , z =
-                                W.Chart.axisList []
-                                    { data = [ Cos, Sin ]
-                                    , toLabel = trigFnLabel
-                                    , toColor = trigFnColor
-                                    , toValue = \fn x -> Just (applyTrigFn fn (toFloat (Date.toRataDie x)))
-                                    }
-                            }
-                            |> W.Chart.withActive model.onClick
-                            |> W.Chart.withHover
-                                [ W.Chart.onClick OnClick
-                                , W.Chart.onMouseEnter OnMouseEnter
-                                , W.Chart.onMouseLeave OnMouseLeave
-                                , W.Chart.groupByXY
 
-                                -- , W.Chart.noTooltip
+                            -- , z =
+                            --     W.Chart.axisList
+                            --         [ W.Chart.axisLabel "Z Axis"
+                            --         ]
+                            --         { data = [ Cos, Sin ]
+                            --         , toLabel = trigFnLabel
+                            --         , toColor = trigFnColor
+                            --         , toValue = \fn x -> Just (applyTrigFn fn (toFloat (Date.toRataDie x)))
+                            --         }
+                            }
+                            |> W.Chart.withActive (Maybe.map Tuple.first model.onClick)
+                            |> W.Chart.withHover
+                                [ W.Chart.onClick (\c a -> OnClick c (toColor a))
+                                , W.Chart.onMouseEnter (\c a -> OnMouseEnter c (toColor a))
+                                , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
+
+                                -- , W.Chart.groupByXY
                                 ]
                 in
                 viewWrapper model
                     [ chartConfig
                         |> W.Chart.view
-                            [ W.Chart.Line.fromY [ W.Chart.Line.smooth, W.Chart.Line.lineAlways, W.Chart.Line.dashed ]
+                            [ W.Chart.Line.fromY []
+                            , W.Chart.Tooltip.fromY
+                                [ W.Chart.Tooltip.header
+                                    (\ctx yList ->
+                                        sumAt .value yList
+                                            |> ctx.y.format
+                                            |> H.text
+                                            |> List.singleton
+                                    )
+                                , W.Chart.Tooltip.formatByX
+                                    (\_ yList y ->
+                                        let
+                                            total : Float
+                                            total =
+                                                sumAt .value yList
+
+                                            pct : Float
+                                            pct =
+                                                if total /= 0 then
+                                                    y.value / total
+
+                                                else
+                                                    0
+                                        in
+                                        [ H.text y.valueString
+                                        , H.text " "
+                                        , H.span
+                                            [ HA.style "color" "gray"
+                                            , HA.style "font-size" "0.8em"
+                                            ]
+                                            [ H.text ("(" ++ pctString pct ++ ")") ]
+                                        ]
+                                    )
+                                ]
                             ]
+
+                    -- [ W.Chart.Bar.fromY []
+                    -- ]
                     , chartConfig
                         |> W.Chart.view
-                            [ W.Chart.Bar.fromZ []
+                            [ W.Chart.Bar.fromY []
+                            , W.Chart.Tooltip.fromY
+                                [ W.Chart.Tooltip.header
+                                    (\ctx yList ->
+                                        sumAt .value yList
+                                            |> ctx.y.format
+                                            |> H.text
+                                            |> List.singleton
+                                    )
+                                , W.Chart.Tooltip.formatByX
+                                    (\_ yList y ->
+                                        let
+                                            total : Float
+                                            total =
+                                                sumAt .value yList
+
+                                            pct : Float
+                                            pct =
+                                                if total /= 0 then
+                                                    y.value / total
+
+                                                else
+                                                    0
+                                        in
+                                        [ H.text y.valueString
+                                        , H.text " "
+                                        , H.span
+                                            [ HA.style "color" "gray"
+                                            , HA.style "font-size" "0.8em"
+                                            ]
+                                            [ H.text ("(" ++ pctString pct ++ ")") ]
+                                        ]
+                                    )
+                                ]
                             ]
-                    , chartConfig
-                        |> W.Chart.view
-                            [ W.Chart.Line.fromZ []
-                            , W.Chart.Bubble.fromY []
-                                { toRadius = \x y -> y.render.value
-                                , toColor = \x y -> y.render.color
-                                }
-                            ]
+
+                    -- , chartConfig
+                    --     |> W.Chart.view
+                    --         [ W.Chart.Line.fromZ []
+                    --         , W.Chart.Bubble.fromY []
+                    --             { toRadius = \x y -> y.render.value
+                    --             , toColor = \x y -> y.render.color
+                    --             }
+                    --         ]
                     ]
         }
+
+
+sumAt : (a -> Float) -> List a -> Float
+sumAt fn xs =
+    List.foldl (\x acc -> fn x + acc) 0 xs
+
+
+pctString : Float -> String
+pctString v =
+    String.fromFloat (v * 100) ++ "%"
 
 
 
@@ -342,18 +378,17 @@ globalStyles =
         ]
 
 
-viewColor : ( Float, Float ) -> Maybe Point -> H.Html msg
+viewColor : ( Float, Float ) -> Maybe ( W.Chart.Coordinates, String ) -> H.Html msg
 viewColor ( top, right ) maybeColor =
     maybeColor
-        |> Maybe.andThen (List.head << .y)
         |> Maybe.map
-            (\y ->
+            (\( _, color ) ->
                 H.div
                     [ HA.style "width" "40px"
                     , HA.style "height" "40px"
                     , HA.style "border-radius" "20px"
                     , HA.style "position" "fixed"
-                    , HA.style "background" y.color
+                    , HA.style "background" color
                     , HA.style "top" (String.fromFloat top ++ "px")
                     , HA.style "right" (String.fromFloat right ++ "px")
                     ]

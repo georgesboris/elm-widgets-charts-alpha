@@ -44,12 +44,12 @@ fromY =
                             binScale =
                                 toBinScale attrs ctx (binCount ctx.y)
                         in
-                        \pointData ->
+                        \_ point ->
                             viewHover
                                 ctx.y
                                 binScale
-                                pointData.x
-                                (toIndexed ctx.y 0 pointData.y)
+                                point.x.render
+                                (toIndexedMap .render ctx.y 0 point.y)
                     )
         )
 
@@ -74,8 +74,8 @@ fromZ =
                             binScale =
                                 toBinScale attrs ctx (binCount ctx.z)
                         in
-                        \pointData ->
-                            viewHover ctx.z binScale pointData.x (toIndexed ctx.z 0 pointData.z)
+                        \_ point ->
+                            viewHover ctx.z binScale point.x.render (toIndexedMap .render ctx.z 0 point.z)
                     )
         )
 
@@ -120,19 +120,19 @@ fromYZ =
                             binScale =
                                 toBinScale attrs ctx (yCount + zCount)
                         in
-                        \pointData ->
+                        \_ point ->
                             let
                                 yItems : List ( Int, W.Chart.RenderDatum )
                                 yItems =
-                                    toIndexed ctx.y 0 pointData.y
+                                    toIndexedMap .render ctx.y 0 point.y
 
                                 zItems : List ( Int, W.Chart.RenderDatum )
                                 zItems =
-                                    toIndexed ctx.z yCount pointData.z
+                                    toIndexedMap .render ctx.z yCount point.z
                             in
                             S.g []
-                                [ viewHover ctx.y binScale pointData.x yItems
-                                , viewHover ctx.z binScale pointData.x zItems
+                                [ viewHover ctx.y binScale point.x.render yItems
+                                , viewHover ctx.z binScale point.x.render zItems
                                 ]
                     )
         )
@@ -201,7 +201,7 @@ viewHover axis binScale xPoint yzPoints =
         |> S.g []
 
 
-viewBars : W.Chart.Widget.Context x y z -> W.Chart.Internal.RenderAxisYZ a -> Scale.BandScale Int -> List ( Int, W.Chart.Internal.AxisDataPoints x a ) -> SC.Svg msg
+viewBars : W.Chart.Context x y z -> W.Chart.Internal.RenderAxisYZ a -> Scale.BandScale Int -> List ( Int, W.Chart.Internal.AxisDataPoints x a ) -> SC.Svg msg
 viewBars ctx axis binScale indexedAxes =
     indexedAxes
         |> List.concatMap
@@ -270,16 +270,21 @@ binCount axis =
         List.length axis.data
 
 
-toIndexed : W.Chart.Internal.RenderAxisYZ a -> Int -> List item -> List ( Int, item )
-toIndexed axis offset points =
+toIndexedMap : (item -> a) -> W.Chart.Internal.RenderAxisYZ yz -> Int -> List item -> List ( Int, a )
+toIndexedMap fn axis offset points =
     if axis.isStacked then
-        List.map (Tuple.pair offset) points
+        List.map (\item -> ( offset, fn item )) points
 
     else
-        List.indexedMap (\index a -> ( index + offset, a )) points
+        List.indexedMap (\index item -> ( index + offset, fn item )) points
 
 
-toBinScale : Attributes -> W.Chart.Widget.Context x y z -> Int -> Scale.BandScale Int
+toIndexed : W.Chart.Internal.RenderAxisYZ yz -> Int -> List item -> List ( Int, item )
+toIndexed =
+    toIndexedMap identity
+
+
+toBinScale : Attributes -> W.Chart.Context x y z -> Int -> Scale.BandScale Int
 toBinScale attrs ctx count =
     Scale.band
         { paddingInner = attrs.innerMargin

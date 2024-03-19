@@ -8,14 +8,15 @@ module W.Chart.Internal exposing
     , AxisType(..)
     , ChartDatum
     , ChartPoint
-    , ChartPointData
     , ChartPointDict
     , Config(..)
     , ConfigData
     , Context
+    , Coordinates
     , DataAttrs
     , DataPoint
     , HoverAttrs
+    , Padding
     , RenderAxisX
     , RenderAxisYZ
     , RenderData(..)
@@ -34,8 +35,11 @@ module W.Chart.Internal exposing
     , attrTransformOrigin
     , bounds
     , boundsAt
+    , dataFromCoords
     , defaultAttrs
     , defaultAxisAttributes
+    , formatFloat
+    , formatPct
     , isJust
     , maybeFilter
     , maybeIf
@@ -75,22 +79,12 @@ type alias WidgetData msg x y z point =
     { main : Maybe (Context x y z -> Svg.Svg msg)
     , background : Maybe (Context x y z -> Svg.Svg msg)
     , foreground : Maybe (Context x y z -> Svg.Svg msg)
-    , hover : Maybe (Context x y z -> ChartPointData point -> Svg.Svg msg)
+    , hover : Maybe (Context x y z -> Coordinates -> point -> Svg.Svg msg)
     }
 
 
 
 -- Constants
-
-
-xAxisPadding : Float
-xAxisPadding =
-    22
-
-
-yAxisPadding : Float
-yAxisPadding =
-    62
 
 
 dummyScale : Scale.ContinuousScale Float
@@ -108,21 +102,12 @@ type Config msg x y z point
 
 type alias ConfigData msg x y z point =
     { attrs : Attributes msg
-    , activePoint : Maybe (ChartPointData point)
+    , activePoint : Maybe Coordinates
     , toPoint : ChartPoint x y z -> point
     , hover : Maybe (HoverAttrs msg point)
     , xData : Maybe (DataAttrs x x)
     , yData : Maybe (DataAttrs x y)
     , zData : Maybe (DataAttrs x z)
-    }
-
-
-type alias ChartPointData point =
-    { pos : { x : Float, y : Float }
-    , x : RenderDatum
-    , y : List RenderDatum
-    , z : List RenderDatum
-    , point : point
     }
 
 
@@ -137,7 +122,6 @@ type alias RenderAxisX x =
     { data : List x
     , scale : Axis.RenderableScale {} (List x) ( Float, Float ) x
     , binScale : Scale.BandScale x
-    , range : Float
     , ticks : Int
     , showAxis : Bool
     , showGrid : Bool
@@ -149,9 +133,9 @@ type alias RenderAxisYZ a =
     { data : List a
     , scale : Scale.ContinuousScale Float
     , zero : Float
-    , range : Float
     , label : Maybe String
     , isStacked : Bool
+    , isDistribution : Bool
     , ticks : Int
     , format : Float -> String
     , showAxis : Bool
@@ -165,7 +149,10 @@ type alias Context x y z =
     , y : RenderAxisYZ y
     , z : RenderAxisYZ z
     , points : ChartPointDict x y z
+    , fontSize : { sm : Float, md : Float, lg : Float }
     , isDebugging : Bool
+    , width : Float
+    , height : Float
     }
 
 
@@ -182,12 +169,16 @@ type alias RenderDatum =
     }
 
 
+{-| -}
+type alias Coordinates =
+    { x : Float, y : Maybe Float }
+
+
 type alias HoverAttrs msg point =
     { nearest : Bool
-    , tooltip : Bool
-    , onClick : Maybe (ChartPointData point -> msg)
-    , onMouseEnter : Maybe (ChartPointData point -> msg)
-    , onMouseLeave : Maybe (ChartPointData point -> msg)
+    , onClick : Maybe (Coordinates -> point -> msg)
+    , onMouseEnter : Maybe (Coordinates -> point -> msg)
+    , onMouseLeave : Maybe (Coordinates -> point -> msg)
     , custom : List (H.Html msg)
     }
 
@@ -213,6 +204,16 @@ type alias RenderDataFull msg x y z =
     , ctx : Context x y z
     , points : ChartPointDict x y z
     }
+
+
+dataFromCoords : Coordinates -> Context x y z -> Maybe (ChartPoint x y z)
+dataFromCoords coords ctx =
+    case coords.y of
+        Just y ->
+            Dict.get ( coords.x, y ) ctx.points.byXY
+
+        Nothing ->
+            Dict.get coords.x ctx.points.byX
 
 
 type alias AxisRenderDatum =
@@ -241,10 +242,10 @@ type alias ChartPointDict x y z =
 
 
 type alias ChartPoint x y z =
-    { pos : { x : Float, y : Float }
+    { pos : { x : Float, y : Maybe Float }
     , x : DataPoint x
-    , ys : List (DataPoint y)
-    , zs : List (DataPoint z)
+    , y : List (DataPoint y)
+    , z : List (DataPoint z)
     , xRender : RenderDatum
     , yRender : List RenderDatum
     , zRender : List RenderDatum
@@ -278,7 +279,6 @@ type alias RenderDataYZ x a =
     , values :
         List
             { datum : ChartDatum a
-            , domain : ( Float, Float )
             , values : List (DataPoint a)
             , stackedValues : List ( Float, Float )
             }
@@ -408,14 +408,20 @@ toRenderData cfg xData =
         , z = zData
         , points = points
         , ctx =
-            { points = points
-            , isDebugging = cfg.attrs.debug
+            { isDebugging = cfg.attrs.debug
+            , width = spacings.chart.width
+            , height = spacings.chart.height
+            , points = points
+            , fontSize =
+                { sm = cfg.attrs.fontSize.small
+                , md = cfg.attrs.fontSize.medium
+                , lg = cfg.attrs.fontSize.large
+                }
             , x =
                 { data = xData.data
                 , scale = x.scale
                 , binScale = x.bandScale
-                , range = spacings.chart.width
-                , ticks = cfg.attrs.yAxis.ticks
+                , ticks = cfg.attrs.xAxis.ticks
                 , showAxis = cfg.attrs.xAxis.showAxis
                 , showGrid = cfg.attrs.xAxis.showGrid
                 , format = xData.toLabel
@@ -424,8 +430,8 @@ toRenderData cfg xData =
                 { data = yDataList
                 , scale = yScale
                 , zero = Scale.convert yScale 0
-                , range = spacings.chart.height
                 , isStacked = cfg.attrs.yAxis.stackType /= NotStacked
+                , isDistribution = cfg.attrs.yAxis.stackType == Distribution
                 , ticks = cfg.attrs.yAxis.ticks
                 , label = cfg.attrs.yAxis.label
                 , format = cfg.attrs.yAxis.format
@@ -436,8 +442,8 @@ toRenderData cfg xData =
                 { data = zDataList
                 , scale = zScale
                 , zero = Scale.convert zScale 0
-                , range = spacings.chart.height
                 , isStacked = cfg.attrs.zAxis.stackType /= NotStacked
+                , isDistribution = cfg.attrs.zAxis.stackType == Distribution
                 , ticks = cfg.attrs.yAxis.ticks
                 , label = cfg.attrs.zAxis.label
                 , format = cfg.attrs.zAxis.format
@@ -579,10 +585,10 @@ toChartPointDict attrs xData maybeYData maybeZData =
                             |> Set.toList
                 in
                 ( ( x.render.valueScaled
-                  , { pos = { x = x.render.valueScaled, y = 0.0 }
+                  , { pos = { x = x.render.valueScaled, y = Nothing }
                     , x = x
-                    , ys = ys
-                    , zs = zs
+                    , y = ys
+                    , z = zs
                     , xRender = x.render
                     , yRender = List.map .render ys
                     , zRender = List.map .render zs
@@ -604,10 +610,10 @@ toChartPointDict attrs xData maybeYData maybeZData =
                                         |> Maybe.withDefault []
                             in
                             ( ( x.render.valueScaled, yValue )
-                            , { pos = { x = x.render.valueScaled, y = yValue }
+                            , { pos = { x = x.render.valueScaled, y = Just yValue }
                               , x = x
-                              , ys = ys_
-                              , zs = zs_
+                              , y = ys_
+                              , z = zs_
                               , xRender = x.render
                               , yRender = List.map .render ys_
                               , zRender = List.map .render zs_
@@ -664,14 +670,10 @@ type alias Spacings =
     { canvas :
         { width : Float
         , height : Float
-        , halfWidth : Float
-        , halfHeight : Float
         }
     , chart :
         { width : Float
         , height : Float
-        , halfWidth : Float
-        , halfHeight : Float
         }
     , padding :
         { top : Float
@@ -690,10 +692,20 @@ type alias Attributes msg =
     { debug : Bool
     , width : Float
     , ratio : Float
+    , fontSize :
+        { small : Float
+        , medium : Float
+        , large : Float
+        }
     , xAxis : AxisAttributes
     , yAxis : AxisAttributes
     , zAxis : AxisAttributes
-    , padding : Float
+    , padding :
+        { top : Float
+        , bottom : Float
+        , left : Float
+        , right : Float
+        }
     , background : String
     , htmlAttributes : List (H.Attribute msg)
     }
@@ -720,6 +732,7 @@ type alias AxisAttributes =
     { label : Maybe String
     , defaultValue : Float
     , format : Float -> String
+    , tooltipFormat : Maybe (Float -> String)
     , safety : Float
     , ticks : Int
     , scale : ScaleType
@@ -759,7 +772,8 @@ defaultAxisAttributes : AxisAttributes
 defaultAxisAttributes =
     { label = Nothing
     , defaultValue = 0.0
-    , format = defaultFormat
+    , format = formatFloat
+    , tooltipFormat = Nothing
     , safety = 0.1
     , ticks = 5
     , scale = Linear
@@ -774,17 +788,35 @@ defaultAttrs =
     { debug = False
     , width = 960
     , ratio = 0.5
+    , fontSize =
+        { small = 12
+        , medium = 13
+        , large = 14
+        }
     , xAxis = defaultAxisAttributes
     , yAxis = defaultAxisAttributes
     , zAxis = defaultAxisAttributes
-    , padding = 40
+    , padding =
+        { top = 28
+        , left = 80
+        , right = 80
+        , bottom = 64
+        }
     , background = "transparent"
     , htmlAttributes = []
     }
 
 
-defaultFormat : Float -> String
-defaultFormat value =
+type alias Padding =
+    { top : Float
+    , right : Float
+    , left : Float
+    , bottom : Float
+    }
+
+
+formatFloat : Float -> String
+formatFloat value =
     let
         valueString : String
         valueString =
@@ -792,13 +824,21 @@ defaultFormat value =
     in
     case String.split "." valueString of
         int :: dec :: [] ->
-            int ++ "." ++ String.left 3 dec
+            int ++ "." ++ String.left 2 dec
 
         int :: [] ->
             int
 
         _ ->
             valueString
+
+
+formatPct : Float -> String
+formatPct value =
+    value
+        * 100
+        |> formatFloat
+        |> (\s -> s ++ "%")
 
 
 applyAttrs : List (Attribute msg) -> Attributes msg
@@ -855,7 +895,7 @@ toStackedData :
     -> RenderDataYZ x a
 toStackedData props =
     let
-        dataWithValues : List ( ChartDatum a, ( Float, Float ), List Float )
+        dataWithValues : List ( ChartDatum a, List Float )
         dataWithValues =
             props.axisData.data
                 |> List.map
@@ -874,7 +914,6 @@ toStackedData props =
                           , color = props.axisData.toColor a
                           , label = props.axisData.toLabel a
                           }
-                        , bounds values
                         , values
                         )
                     )
@@ -898,7 +937,7 @@ toStackedData props =
             Shape.stack
                 { offset = stackOffset
                 , order = identity
-                , data = List.map (\( a, _, xs ) -> ( a, xs )) dataWithValues
+                , data = dataWithValues
                 }
 
         scale : Scale.ContinuousScale Float
@@ -914,13 +953,12 @@ toStackedData props =
     , stack = stack
     , values =
         List.map2
-            (\( a, domain, values ) stackedValues ->
+            (\( a, values ) stackedValues ->
                 { datum =
                     { datum = a.datum
                     , color = a.color
                     , label = a.label
                     }
-                , domain = domain
                 , values =
                     List.map3
                         (\x v ( low, high ) ->
@@ -971,7 +1009,11 @@ normalizeColumn column =
         total =
             List.foldl (\x acc -> acc + abs x) 0 values
     in
-    List.map (\value -> ( 0, value / total )) values
+    if total == 0 then
+        List.map (\_ -> ( 0, 0 )) values
+
+    else
+        List.map (\value -> ( 0, value / total )) values
 
 
 transpose : List (List a) -> List (List a)
@@ -1004,60 +1046,20 @@ toSpacings attrs =
 
         chart : { width : Float, height : Float }
         chart =
-            { height = canvas.height - padding.top - padding.bottom
-            , width = canvas.width - padding.left - padding.right
-            }
-
-        padding :
-            { top : Float
-            , bottom : Float
-            , left : Float
-            , right : Float
-            }
-        padding =
-            { top = attrs.padding
-            , bottom = toPadding attrs AxisX
-            , left = toPadding attrs AxisY
-            , right = toPadding attrs AxisZ
+            { height = canvas.height - attrs.padding.top - attrs.padding.bottom
+            , width = canvas.width - attrs.padding.left - attrs.padding.right
             }
     in
-    { padding = padding
+    { padding = attrs.padding
     , canvas =
         { width = canvas.width
         , height = canvas.height
-        , halfWidth = canvas.width * 0.5
-        , halfHeight = canvas.height * 0.5
         }
     , chart =
         { width = chart.width
         , height = chart.height
-        , halfWidth = chart.width * 0.5
-        , halfHeight = chart.height * 0.5
         }
     }
-
-
-toPadding : Attributes msg -> AxisType -> Float
-toPadding attrs axisType =
-    let
-        axisConfig : AxisAttributes
-        axisConfig =
-            toAxis axisType attrs
-    in
-    if axisConfig.showAxis then
-        let
-            axisPadding : Float
-            axisPadding =
-                if axisType == AxisX then
-                    xAxisPadding
-
-                else
-                    yAxisPadding
-        in
-        attrs.padding + axisPadding
-
-    else
-        attrs.padding
 
 
 
@@ -1185,7 +1187,7 @@ attrAnimationDelayX ctx xScaled =
         -- than points on the upper right
         pct : Float
         pct =
-            xScaled / ctx.x.range
+            xScaled / ctx.width
 
         -- Controls the max offset
         -- The faster points will have 0.0 offset and
@@ -1209,7 +1211,7 @@ attrAnimationDelay ctx xScaled yScaled =
         -- than points on the upper right
         pct : Float
         pct =
-            0.5 * ((xScaled / ctx.x.range) + (yScaled / ctx.y.range))
+            0.5 * ((xScaled / ctx.width) + (yScaled / ctx.height))
 
         -- Controls the max offset
         -- The faster points will have 0.0 offset and

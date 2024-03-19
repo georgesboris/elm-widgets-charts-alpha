@@ -1,18 +1,28 @@
 
 ## Vis Features
 
-- [ ] *!* Move binPadding etc to bar attrs
-- [ ] Domain/min/max
+- [x] Make ticks always grab last date
+- [x] Review Padding / Axis Label Padding?
 
-## Theming
+- [x] Review distribution + area chart
+- [x] Distribution info always? (% in bin)
 
-- [ ] Theme using the same pattern as lustre? Radix UI
-- [ ] Safety based on pixel values (padding?)
-- [ ] 0 normalization for log axis?
-- [ ] More colors?
-
-## Performance
+- [x] Headers on tooltips? (sum/average)
+- [x] Format differently between axis and tooltip (or custom tooltip?)
 
 - [ ] *!* Lazy layers (interaction vs main chart)
 - [ ] *!* Stateful variation for increased performance
-- [ ] Less HTML elements (use paths instead of multiple elements)
+
+- [ ] Theme (config through attributes + custom themes + fallback to elm-widgets-theme)
+- [ ] Enable widgets to change attributes (if not yet set)? (paddings for labels?)
+
+- [ ] Area with gradients
+
+- [ ] Custom domain (min/max) (useful for windowing)
+
+- [ ] More colors?
+- [ ] Theme using the same pattern as lustre? Radix UI (elm-radix)?
+
+- [ ] Safety based on pixel values (padding?)
+- [ ] 0 normalization for log axis?
+

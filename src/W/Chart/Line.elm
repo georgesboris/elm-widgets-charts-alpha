@@ -32,7 +32,7 @@ fromY =
     Attr.withAttrs defaultAttrs
         (\attrs ->
             W.Chart.Widget.fromY (\ctx -> viewLines attrs ctx.y ctx.points.y)
-                |> W.Chart.Widget.withHover (\_ data -> viewHover data.x data.y)
+                |> W.Chart.Widget.withHover (\_ _ point -> viewHover point.x point.y)
         )
 
 
@@ -42,7 +42,7 @@ fromZ =
     Attr.withAttrs defaultAttrs
         (\attrs ->
             W.Chart.Widget.fromZ (\ctx -> viewLines attrs ctx.z ctx.points.z)
-                |> W.Chart.Widget.withHover (\_ data -> viewHover data.x data.z)
+                |> W.Chart.Widget.withHover (\_ _ point -> viewHover point.x point.z)
         )
 
 
@@ -98,25 +98,31 @@ areaAlways =
 -- Helpers
 
 
-viewHover : W.Chart.Internal.RenderDatum -> List W.Chart.Internal.RenderDatum -> SC.Svg msg
+viewHover : W.Chart.Internal.DataPoint x -> List (W.Chart.Internal.DataPoint a) -> SC.Svg msg
 viewHover x ys =
     ys
-        |> List.map
+        |> List.filterMap
             (\y ->
-                W.Svg.Circle.view
-                    [ Svg.Attributes.fill y.color
-                    , Svg.Attributes.stroke "white"
-                    , W.Svg.Attributes.dropShadow
-                        { xOffset = 0
-                        , yOffset = 0
-                        , radius = 4.0
-                        , color = y.color
-                        }
-                    ]
-                    { x = x.valueScaled
-                    , y = y.valueScaled
-                    , radius = 4.0
-                    }
+                if y.render.isDefault then
+                    Nothing
+
+                else
+                    Just
+                        (W.Svg.Circle.view
+                            [ Svg.Attributes.fill y.render.color
+                            , Svg.Attributes.stroke "white"
+                            , W.Svg.Attributes.dropShadow
+                                { xOffset = 0
+                                , yOffset = 0
+                                , radius = 4.0
+                                , color = y.render.color
+                                }
+                            ]
+                            { x = x.render.valueScaled
+                            , y = y.render.valueScaled
+                            , radius = 4.0
+                            }
+                        )
             )
         |> S.g []
 

@@ -9,7 +9,8 @@
         "W.Chart.Bar",
         "W.Chart.Bubble",
         "W.Chart.Line",
-        "W.Chart.Widget"
+        "W.Chart.Widget",
+        "W.Chart.Tooltip"
     ],
     "elm-version": "0.19.0 <= v < 0.20.0",
     "dependencies": {

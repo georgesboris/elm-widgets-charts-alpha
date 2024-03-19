@@ -77,18 +77,17 @@ fromY =
                             radiusScale =
                                 toRadiusScale ctx.points.y props.toRadius
                         in
-                        \pointData ->
+                        \_ point ->
                             viewHover
-                                pointData.x
-                                (List.map2
-                                    (\yRender yPoint ->
-                                        ( Scale.convert radiusScale (props.toRadius pointData.point.x yPoint)
-                                        , props.toColor pointData.point.x yPoint
-                                        , yRender
+                                point.x.render
+                                (point.y
+                                    |> List.map
+                                        (\yPoint ->
+                                            ( Scale.convert radiusScale (props.toRadius point.x yPoint)
+                                            , props.toColor point.x yPoint
+                                            , yPoint.render
+                                            )
                                         )
-                                    )
-                                    pointData.y
-                                    pointData.point.y
                                 )
                     )
         )
@@ -116,25 +115,24 @@ fromZ =
                             radiusScale =
                                 toRadiusScale ctx.points.z props.toRadius
                         in
-                        \pointData ->
+                        \_ point ->
                             viewHover
-                                pointData.x
-                                (List.map2
-                                    (\zRender zPoint ->
-                                        ( Scale.convert radiusScale (props.toRadius pointData.point.x zPoint)
-                                        , props.toColor pointData.point.x zPoint
-                                        , zRender
+                                point.x.render
+                                (point.z
+                                    |> List.map
+                                        (\zPoint ->
+                                            ( Scale.convert radiusScale (props.toRadius point.x zPoint)
+                                            , props.toColor point.x zPoint
+                                            , zPoint.render
+                                            )
                                         )
-                                    )
-                                    pointData.z
-                                    pointData.point.z
                                 )
                     )
         )
 
 
 view :
-    W.Chart.Widget.Context x y z
+    W.Chart.Context x y z
     -> List (W.Chart.Internal.AxisDataPoints x a)
     ->
         { toRadius : W.Chart.Point x -> W.Chart.Point a -> Float
