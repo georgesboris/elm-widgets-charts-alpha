@@ -173,30 +173,40 @@ margins innerMargin outerMargin =
 viewHover : W.Chart.Internal.RenderAxisYZ a -> Scale.BandScale Int -> W.Chart.Internal.RenderDatum -> List ( Int, W.Chart.Internal.RenderDatum ) -> SC.Svg msg
 viewHover axis binScale xPoint yzPoints =
     yzPoints
-        |> List.map
+        |> List.filterMap
             (\( index, yzPoint ) ->
                 let
+                    height : Float
+                    height =
+                        abs (yzPoint.valueStart - yzPoint.valueEnd)
+
                     x : Float
                     x =
                         xPoint.valueStart + Scale.convert binScale index
                 in
-                viewBar
-                    [ Svg.Attributes.stroke "white"
-                    , SAP.strokeWidth 2
-                    , W.Svg.Attributes.dropShadow
-                        { xOffset = 0
-                        , yOffset = 0
-                        , radius = 4.0
-                        , color = yzPoint.color
-                        }
-                    ]
-                    { color = yzPoint.color
-                    , x = x
-                    , y = yzPoint.valueStart
-                    , width = Scale.bandwidth binScale
-                    , height = abs (yzPoint.valueStart - yzPoint.valueEnd)
-                    , axis = axis
-                    }
+                if height > 0.0 then
+                    Just
+                        (viewBar
+                            [ Svg.Attributes.stroke "white"
+                            , SAP.strokeWidth 2
+                            , W.Svg.Attributes.dropShadow
+                                { xOffset = 0
+                                , yOffset = 0
+                                , radius = 4.0
+                                , color = yzPoint.color
+                                }
+                            ]
+                            { color = yzPoint.color
+                            , x = x
+                            , y = yzPoint.valueStart
+                            , width = Scale.bandwidth binScale
+                            , height = height
+                            , axis = axis
+                            }
+                        )
+
+                else
+                    Nothing
             )
         |> S.g []
 
@@ -207,27 +217,37 @@ viewBars ctx axis binScale indexedAxes =
         |> List.concatMap
             (\( index, ( axisDatum, points ) ) ->
                 points
-                    |> List.map
+                    |> List.filterMap
                         (\( xPoint, yzPoint ) ->
                             let
+                                height : Float
+                                height =
+                                    abs (yzPoint.render.valueStart - yzPoint.render.valueEnd)
+
                                 x : Float
                                 x =
                                     xPoint.render.valueStart + Scale.convert binScale index
                             in
-                            S.g
-                                [ W.Chart.Internal.attrAnimationDelayX ctx x
-                                , W.Chart.Internal.attrTransformOrigin x axis.zero
-                                , Svg.Attributes.class "ew-charts--animate-scale-z"
-                                ]
-                                [ viewBar []
-                                    { color = axisDatum.color
-                                    , x = x
-                                    , y = yzPoint.render.valueStart
-                                    , width = Scale.bandwidth binScale
-                                    , height = abs (yzPoint.render.valueStart - yzPoint.render.valueEnd)
-                                    , axis = axis
-                                    }
-                                ]
+                            if height > 0.0 then
+                                Just
+                                    (S.g
+                                        [ W.Chart.Internal.attrAnimationDelayX ctx x
+                                        , W.Chart.Internal.attrTransformOrigin x axis.zero
+                                        , Svg.Attributes.class "ew-charts--animate-scale-z"
+                                        ]
+                                        [ viewBar []
+                                            { color = axisDatum.color
+                                            , x = x
+                                            , y = yzPoint.render.valueStart
+                                            , width = Scale.bandwidth binScale
+                                            , height = abs (yzPoint.render.valueStart - yzPoint.render.valueEnd)
+                                            , axis = axis
+                                            }
+                                        ]
+                                    )
+
+                            else
+                                Nothing
                         )
             )
         |> S.g []

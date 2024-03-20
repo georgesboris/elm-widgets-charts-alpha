@@ -481,11 +481,19 @@ toDomainWithSafety axisAttributes domain =
             safeBounds axisAttributes.safety domain
 
 
-toValuesByX : RenderDataYZ x a -> List (List (DataPoint a))
-toValuesByX xs =
-    xs.values
-        |> List.map .values
-        |> transpose
+toValuesByX : List (DataPoint x) -> Maybe (RenderDataYZ x a) -> List (List (DataPoint a))
+toValuesByX xPoints yzData =
+    case
+        yzData
+            |> Maybe.map .values
+            |> maybeFilter (not << List.isEmpty)
+            |> Maybe.map (List.map .values >> transpose)
+    of
+        Just valuesByX ->
+            valuesByX
+
+        Nothing ->
+            List.map (\_ -> []) xPoints
 
 
 toAxisPoints : List (DataPoint x) -> RenderDataYZ x a -> List ( ChartDatum a, List ( DataPoint x, DataPoint a ) )
@@ -545,25 +553,10 @@ toChartPointDict attrs xData maybeYData maybeZData =
                 , List (DataPoint z)
                 )
         pointsBase =
-            case ( maybeYData, maybeZData ) of
-                ( Just yData, Just zData ) ->
-                    List.map3 (\x yForX zForX -> ( x, yForX, zForX ))
-                        xPoints
-                        (toValuesByX yData)
-                        (toValuesByX zData)
-
-                ( Just yData, Nothing ) ->
-                    List.map2 (\x yForX -> ( x, yForX, [] ))
-                        xPoints
-                        (toValuesByX yData)
-
-                ( Nothing, Just zData ) ->
-                    List.map2 (\x zForX -> ( x, [], zForX ))
-                        xPoints
-                        (toValuesByX zData)
-
-                ( Nothing, Nothing ) ->
-                    List.map (\x -> ( x, [], [] )) xPoints
+            List.map3 (\x yForX zForX -> ( x, yForX, zForX ))
+                xPoints
+                (toValuesByX xPoints maybeYData)
+                (toValuesByX xPoints maybeZData)
     in
     pointsBase
         |> List.foldl

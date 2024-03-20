@@ -10,6 +10,9 @@
 - [x] Headers on tooltips? (sum/average)
 - [x] Format differently between axis and tooltip (or custom tooltip?)
 
+- [ ] Tooltip paddings, background and non-compact version
+- [ ] Separate tooltip group header from axisLabel
+
 - [ ] *!* Lazy layers (interaction vs main chart)
 - [ ] *!* Stateful variation for increased performance
 

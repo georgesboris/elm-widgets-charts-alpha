@@ -18,10 +18,8 @@ import W.Styles
 
 -- type alias Point =
 --     W.Chart.PointXYZ Date.Date Int TrigFunction
-
-
-type alias Point =
-    W.Chart.PointXY Date.Date Int
+-- type alias Point =
+--     W.Chart.PointXY Date.Date Int
 
 
 type alias Model =
@@ -49,7 +47,7 @@ update msg model =
             { model | onHover = Nothing }
 
 
-toColor : Point -> String
+toColor : { a | y : List (W.Chart.Point y) } -> String
 toColor point =
     point.y
         |> List.head
@@ -125,9 +123,33 @@ main =
         , view =
             \model ->
                 let
-                    chartConfig : W.Chart.ConfigXY Msg Date.Date Int
-                    chartConfig =
+                    chartY : W.Chart.ConfigXY Msg Date.Date Int
+                    chartY =
                         W.Chart.fromXY []
+                            { x =
+                                W.Chart.xAxis [ W.Chart.ticks 6, W.Chart.axisLabel "X Axis" ]
+                                    { data = dates
+                                    , toLabel = Date.format "MMM d"
+                                    }
+                            , y =
+                                W.Chart.axisList
+                                    [ W.Chart.distribution ]
+                                    { data = List.range 0 9
+                                    , toLabel = String.fromInt
+                                    , toColor = W.Chart.Colors.colorFrom W.Chart.Colors.rainbow
+                                    , toValue = \_ -> purchasesByDay
+                                    }
+                            }
+                            |> W.Chart.withActive (Maybe.map Tuple.first model.onClick)
+                            |> W.Chart.withHover
+                                [ W.Chart.onClick (\c a -> OnClick c (toColor a))
+                                , W.Chart.onMouseEnter (\c a -> OnMouseEnter c (toColor a))
+                                , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
+                                ]
+
+                    chartYZ : W.Chart.ConfigXYZ Msg Date.Date Int TrigFunction
+                    chartYZ =
+                        W.Chart.fromXYZ []
                             { x =
                                 W.Chart.xAxis [ W.Chart.ticks 6, W.Chart.axisLabel "X Axis" ]
                                     { data = dates
@@ -143,16 +165,15 @@ main =
                                     , toColor = W.Chart.Colors.colorFrom W.Chart.Colors.rainbow
                                     , toValue = \_ -> purchasesByDay
                                     }
-
-                            -- , z =
-                            --     W.Chart.axisList
-                            --         [ W.Chart.axisLabel "Z Axis"
-                            --         ]
-                            --         { data = [ Cos, Sin ]
-                            --         , toLabel = trigFnLabel
-                            --         , toColor = trigFnColor
-                            --         , toValue = \fn x -> Just (applyTrigFn fn (toFloat (Date.toRataDie x)))
-                            --         }
+                            , z =
+                                W.Chart.axisList
+                                    [ W.Chart.axisLabel "Z Axis"
+                                    ]
+                                    { data = []
+                                    , toLabel = trigFnLabel
+                                    , toColor = trigFnColor
+                                    , toValue = \fn x -> Just (applyTrigFn fn (toFloat (Date.toRataDie x)))
+                                    }
                             }
                             |> W.Chart.withActive (Maybe.map Tuple.first model.onClick)
                             |> W.Chart.withHover
@@ -164,51 +185,52 @@ main =
                                 ]
                 in
                 viewWrapper model
-                    [ chartConfig
+                    -- [ chartY
+                    --     |> W.Chart.view
+                    --         [ W.Chart.Line.fromY []
+                    --         , W.Chart.Tooltip.fromY
+                    --             [ W.Chart.Tooltip.header
+                    --                 (\ctx yList ->
+                    --                     sumAt .value yList
+                    --                         |> ctx.y.format
+                    --                         |> H.text
+                    --                         |> List.singleton
+                    --                 )
+                    --             , W.Chart.Tooltip.formatByX
+                    --                 (\_ yList y ->
+                    --                     let
+                    --                         total : Float
+                    --                         total =
+                    --                             sumAt .value yList
+                    --                         pct : Float
+                    --                         pct =
+                    --                             if total /= 0 then
+                    --                                 y.value / total
+                    --                             else
+                    --                                 0
+                    --                     in
+                    --                     [ H.text y.valueString
+                    --                     , H.text " "
+                    --                     , H.span
+                    --                         [ HA.style "color" "gray"
+                    --                         , HA.style "font-size" "0.8em"
+                    --                         ]
+                    --                         [ H.text ("(" ++ pctString pct ++ ")") ]
+                    --                     ]
+                    --                 )
+                    --             ]
+                    --         ]
+                    [ chartYZ
+                        |> W.Chart.view
+                            [ W.Chart.Bar.fromYZ []
+                            , W.Chart.Tooltip.fromYZ []
+                            ]
+                    , chartY
                         |> W.Chart.view
                             [ W.Chart.Line.fromY []
                             , W.Chart.Tooltip.fromY
-                                [ W.Chart.Tooltip.header
-                                    (\ctx yList ->
-                                        sumAt .value yList
-                                            |> ctx.y.format
-                                            |> H.text
-                                            |> List.singleton
-                                    )
-                                , W.Chart.Tooltip.formatByX
-                                    (\_ yList y ->
-                                        let
-                                            total : Float
-                                            total =
-                                                sumAt .value yList
-
-                                            pct : Float
-                                            pct =
-                                                if total /= 0 then
-                                                    y.value / total
-
-                                                else
-                                                    0
-                                        in
-                                        [ H.text y.valueString
-                                        , H.text " "
-                                        , H.span
-                                            [ HA.style "color" "gray"
-                                            , HA.style "font-size" "0.8em"
-                                            ]
-                                            [ H.text ("(" ++ pctString pct ++ ")") ]
-                                        ]
-                                    )
-                                ]
-                            ]
-
-                    -- [ W.Chart.Bar.fromY []
-                    -- ]
-                    , chartConfig
-                        |> W.Chart.view
-                            [ W.Chart.Bar.fromY []
-                            , W.Chart.Tooltip.fromY
-                                [ W.Chart.Tooltip.header
+                                [ W.Chart.Tooltip.yAxisLabel [ H.text "YYY" ]
+                                , W.Chart.Tooltip.axisValue
                                     (\ctx yList ->
                                         sumAt .value yList
                                             |> ctx.y.format
