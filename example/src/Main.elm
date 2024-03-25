@@ -136,7 +136,7 @@ main =
                                     [ W.Chart.distribution ]
                                     { data = List.range 0 9
                                     , toLabel = String.fromInt
-                                    , toColor = W.Chart.Colors.colorFrom W.Chart.Colors.rainbow
+                                    , toColor = W.Chart.Colors.rainbow
                                     , toValue = \_ -> purchasesByDay
                                     }
                             }
@@ -162,7 +162,7 @@ main =
                                     ]
                                     { data = List.range 0 9
                                     , toLabel = String.fromInt
-                                    , toColor = W.Chart.Colors.colorFrom W.Chart.Colors.rainbow
+                                    , toColor = W.Chart.Colors.rainbow
                                     , toValue = \_ -> purchasesByDay
                                     }
                             , z =
@@ -230,7 +230,7 @@ main =
                             [ W.Chart.Line.fromY []
                             , W.Chart.Tooltip.fromY
                                 [ W.Chart.Tooltip.yAxisLabel [ H.text "YYY" ]
-                                , W.Chart.Tooltip.axisValue
+                                , W.Chart.Tooltip.headerValue
                                     (\ctx yList ->
                                         sumAt .value yList
                                             |> ctx.y.format
@@ -327,7 +327,7 @@ trigFnColor v =
                 Sin ->
                     1
     in
-    W.Chart.Colors.colorFrom W.Chart.Colors.purples index
+    W.Chart.Colors.purple index
 
 
 type alias Data =
@@ -345,7 +345,7 @@ zDataset =
         |> List.indexedMap
             (\index ( label, fn ) ->
                 { label = label
-                , color = W.Chart.Colors.forIndex (index + 3)
+                , color = W.Chart.Colors.contrast (index + 3)
                 , toValue = fn
                 }
             )

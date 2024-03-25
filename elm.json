@@ -3,11 +3,12 @@
     "name": "georgesboris/elm-widgets-charts-alpha",
     "summary": "Development package for elm-widgets-charts. Constant breaking changes.",
     "license": "MPL-2.0",
-    "version": "3.0.0",
+    "version": "3.1.0",
     "exposed-modules": [
         "W.Chart",
         "W.Chart.Bar",
         "W.Chart.Bubble",
+        "W.Chart.Colors",
         "W.Chart.Line",
         "W.Chart.Widget",
         "W.Chart.Tooltip"

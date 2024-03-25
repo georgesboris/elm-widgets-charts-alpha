@@ -1248,16 +1248,34 @@ globalStyles =
 
             .ew-charts--tooltip-x {
                 padding: 4px;
+                font-weight: normal;
             }
 
-            .ew-charts--tooltip-x {
-                font-weight: normal;
+            .ew-charts--tooltip-x-label {
                 color: """ ++ Theme.baseAux ++ """;
             }
 
             .ew-charts--tooltip-x,
             .ew-charts--tooltip-yz--label {
                 font-size: inherit;
+            }
+
+            .ew-charts--tooltip-x,
+            .ew-charts--tooltip-yz--item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 4px;
+            }
+            .ew-charts--tooltip-x--label,
+            .ew-charts--tooltip-yz--item-label {
+                flex-grow: 1;
+            }
+
+            .ew-charts--tooltip-x--value,
+            .ew-charts--tooltip-yz--item-color,
+            .ew-charts--tooltip-yz--item-value {
+                flex-shrink: 0;
             }
 
             .ew-charts--tooltip-yz {
@@ -1276,10 +1294,6 @@ globalStyles =
             }
 
             .ew-charts--tooltip-yz--item {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 4px;
                 padding: 2px 0;
                 margin: 0;
             }
@@ -1289,10 +1303,8 @@ globalStyles =
                 border-radius: 2px;
             }
             .ew-charts--tooltip-yz--item-label {
-                flex-grow: 1;
                 padding: 0 8px 0 2px;
             }
-            .ew-charts--tooltip-yz--item-value {}
 
             /* Axis & Labels */
 

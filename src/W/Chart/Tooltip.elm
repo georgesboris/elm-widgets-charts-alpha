@@ -1,13 +1,13 @@
 module W.Chart.Tooltip exposing
     ( fromY, fromZ, fromYZ
-    , formatByX, yAxisLabel, zAxisLabel, axisValue, Attribute
+    , formatByX, headerValue, yAxisLabel, zAxisLabel, axisValue, Attribute
     )
 
 {-|
 
 @docs fromY, fromZ, fromYZ
 
-@docs formatByX, yAxisLabel, zAxisLabel, axisValue, Attribute
+@docs formatByX, headerValue, yAxisLabel, zAxisLabel, axisValue, Attribute
 
 -}
 
@@ -40,7 +40,7 @@ fromY =
                         else
                             view ctx
                                 coords
-                                [ viewX point.x
+                                [ viewX attrs ctx point.x (List.map .render point.y)
                                 , viewYZ attrs attrs.yConfig ctx ctx.y point.y
                                 ]
                     )
@@ -61,7 +61,7 @@ fromZ =
                         else
                             view ctx
                                 coords
-                                [ viewX point.x
+                                [ viewX attrs ctx point.x (List.map .render point.z)
                                 , viewYZ attrs attrs.zConfig ctx ctx.z point.z
                                 ]
                     )
@@ -82,7 +82,10 @@ fromYZ =
                         else
                             view ctx
                                 coords
-                                [ viewX point.x
+                                [ viewX attrs
+                                    ctx
+                                    point.x
+                                    (List.map .render point.y ++ List.map .render point.z)
                                 , viewYZ attrs attrs.yConfig ctx ctx.y point.y
                                 , viewYZ attrs attrs.zConfig ctx ctx.z point.z
                                 ]
@@ -101,6 +104,7 @@ type alias Attribute msg x y z point =
 
 type alias Attributes msg x y z point =
     { format : Maybe (W.Chart.Context x y z -> List W.Chart.RenderDatum -> W.Chart.RenderDatum -> List (H.Html msg))
+    , headerValue : Maybe (W.Chart.Context x y z -> List W.Chart.RenderDatum -> List (H.Html msg))
     , yConfig : AxisConfig msg x y z
     , zConfig : AxisConfig msg x y z
     , other : Maybe point
@@ -116,6 +120,7 @@ type alias AxisConfig msg x y z =
 defaultAttrs : Attributes msg x y z point
 defaultAttrs =
     { format = Nothing
+    , headerValue = Nothing
     , yConfig = { axisLabel = Nothing, axisValue = Nothing }
     , zConfig = { axisLabel = Nothing, axisValue = Nothing }
     , other = Nothing
@@ -126,6 +131,12 @@ defaultAttrs =
 formatByX : (W.Chart.Context x y z -> List W.Chart.RenderDatum -> W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
 formatByX v =
     Attr.attr (\attr -> { attr | format = Just v })
+
+
+{-| -}
+headerValue : (W.Chart.Context x y z -> List W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
+headerValue v =
+    Attr.attr (\attr -> { attr | headerValue = Just v })
 
 
 {-| -}
@@ -178,11 +189,24 @@ zAxisLabel v =
 -- View
 
 
-viewX : W.Chart.Point x -> H.Html msg
-viewX x =
+viewX :
+    Attributes msg x y z point
+    -> W.Chart.Internal.Context x y z
+    -> W.Chart.Point x
+    -> List W.Chart.RenderDatum
+    -> H.Html msg
+viewX attrs ctx x yzPoints =
     H.h1
         [ HA.class "ew-charts--tooltip-x" ]
-        [ H.text x.render.label
+        [ H.span [ HA.class "ew-charts--tooltip-x--label" ] [ H.text x.render.label ]
+        , attrs.headerValue
+            |> Maybe.map
+                (\fn ->
+                    H.span
+                        [ HA.class "ew-charts--tooltip-x--value " ]
+                        (fn ctx yzPoints)
+                )
+            |> Maybe.withDefault (H.text "")
         ]
 
 
@@ -198,20 +222,11 @@ viewYZ attrs axis ctx axisAttrs dataPoints =
         |> W.Chart.Internal.maybeIf (not << List.isEmpty)
         |> Maybe.map
             (\_ ->
-                let
-                    orderedDataPoints : List (W.Chart.Internal.DataPoint a)
-                    orderedDataPoints =
-                        if axisAttrs.isStacked then
-                            List.reverse dataPoints
-
-                        else
-                            dataPoints
-                in
                 H.section
                     [ HA.class "ew-charts--tooltip-yz" ]
                     [ viewAxisHeader axis ctx axisAttrs dataPoints
                     , H.ul [ HA.class "ew-charts--tooltip-yz--list" ]
-                        (List.map (viewItem attrs ctx dataPoints) orderedDataPoints)
+                        (List.map (viewItem attrs ctx dataPoints) dataPoints)
                     ]
             )
         |> Maybe.withDefault (H.text "")
