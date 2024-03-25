@@ -304,7 +304,7 @@ view ctx coords children =
 
         margin : Float
         margin =
-            Scale.bandwidth ctx.x.binScale
+            Scale.bandwidth ctx.x.binScale * 0.25
 
         alignTop : Bool
         alignTop =

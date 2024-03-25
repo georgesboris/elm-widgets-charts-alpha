@@ -22,7 +22,6 @@ import TypedSvg.Core as SC
 import W.Chart
 import W.Chart.Internal
 import W.Chart.Widget
-import W.Svg.Attributes
 import W.Svg.Circle
 
 
@@ -111,12 +110,6 @@ viewHover x ys =
                         (W.Svg.Circle.view
                             [ Svg.Attributes.fill y.render.color
                             , Svg.Attributes.stroke "white"
-                            , W.Svg.Attributes.dropShadow
-                                { xOffset = 0
-                                , yOffset = 0
-                                , radius = 4.0
-                                , color = y.render.color
-                                }
                             ]
                             { x = x.render.valueScaled
                             , y = y.render.valueScaled

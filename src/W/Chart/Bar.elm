@@ -21,7 +21,6 @@ import TypedSvg.Core as SC
 import W.Chart
 import W.Chart.Internal
 import W.Chart.Widget
-import W.Svg.Attributes
 
 
 {-| -}
@@ -189,12 +188,6 @@ viewHover axis binScale xPoint yzPoints =
                         (viewBar
                             [ Svg.Attributes.stroke "white"
                             , SAP.strokeWidth 2
-                            , W.Svg.Attributes.dropShadow
-                                { xOffset = 0
-                                , yOffset = 0
-                                , radius = 4.0
-                                , color = yzPoint.color
-                                }
                             ]
                             { color = yzPoint.color
                             , x = x

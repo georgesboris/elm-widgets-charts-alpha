@@ -25,7 +25,6 @@ import TypedSvg.Types as ST
 import W.Chart
 import W.Chart.Internal
 import W.Chart.Widget
-import W.Svg.Attributes
 import W.Svg.Circle
 
 
@@ -199,12 +198,6 @@ viewHover xPoint yzPoints =
                     [ Svg.Attributes.stroke color
                     , Svg.Attributes.fill color
                     , SA.fillOpacity (ST.Opacity 0.6)
-                    , W.Svg.Attributes.dropShadow
-                        { xOffset = 0
-                        , yOffset = 0
-                        , radius = 8.0
-                        , color = color
-                        }
                     ]
                     { x = xPoint.valueScaled
                     , y = yzPoint.valueScaled
