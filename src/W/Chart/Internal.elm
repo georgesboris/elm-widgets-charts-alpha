@@ -89,7 +89,7 @@ type alias WidgetData msg x y z point =
 
 dummyScale : Scale.ContinuousScale Float
 dummyScale =
-    Scale.linear ( 0, 1 ) ( 0, 1 )
+    Scale.linear ( 0, 0 ) ( 0, 0 )
 
 
 
@@ -458,12 +458,7 @@ toScaleFn spacings axisAttributes domain =
 
 toDomainWithSafety : AxisAttributes -> ( Float, Float ) -> ( Float, Float )
 toDomainWithSafety axisAttributes domain =
-    case Tuple.mapBoth ceiling ceiling domain of
-        ( 0, 0 ) ->
-            ( 0.0, 100.0 )
-
-        _ ->
-            safeBounds axisAttributes.safety domain
+    safeBounds axisAttributes.safety domain
 
 
 toValuesByX : List (DataPoint x) -> Maybe (RenderDataYZ x a) -> List (List (DataPoint a))

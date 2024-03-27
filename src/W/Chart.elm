@@ -1001,7 +1001,7 @@ toSteps ticks_ xs =
         |> List.foldl
             (\x ( index, acc ) ->
                 ( index + 1
-                , if index == length - 1 || modBy mod index == 0 then
+                , if modBy mod index == 0 then
                     x :: acc
 
                   else

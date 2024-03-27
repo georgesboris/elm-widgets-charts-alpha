@@ -59,7 +59,7 @@ date =
 
 dates : List Date
 dates =
-    List.range 1 59
+    List.range 1 23
         |> List.map (\i -> Date.fromCalendarDate 2023 Jan i)
 
 
@@ -155,13 +155,13 @@ main =
                                     { data = List.range 0 9
                                     , toLabel = String.fromInt
                                     , toColor = W.Chart.Colors.colorByIndexSkipping W.Chart.Colors.rainbow
-                                    , toValue = \_ -> purchasesByDay >> Maybe.map (\x -> x - 2000)
+                                    , toValue = \_ -> purchasesByDay
                                     }
                             , z =
                                 W.Chart.axisList
                                     [ W.Chart.axisLabel "Z Axis"
                                     ]
-                                    { data = []
+                                    { data = [ Cos, Sin ]
                                     , toLabel = trigFnLabel
                                     , toColor = trigFnColor
                                     , toValue = \fn x -> Just (applyTrigFn fn (toFloat (Date.toRataDie x)))

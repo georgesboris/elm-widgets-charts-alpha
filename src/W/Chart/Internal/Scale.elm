@@ -29,24 +29,43 @@ normalizeDomains a b =
         aDomain : ( Float, Float )
         aDomain =
             toZeroDomain a
+                |> Debug.log "aDomain"
 
         bDomain : ( Float, Float )
         bDomain =
             toZeroDomain b
+                |> Debug.log "bDomain"
 
         delta : Float
         delta =
             Basics.max
                 (toDomainDelta aDomain)
                 (toDomainDelta bDomain)
-    in
-    if delta == 0 then
-        ( a, b )
 
-    else
+        hasNegativeOnlyDomain : Bool
+        hasNegativeOnlyDomain =
+            isInfinite delta
+    in
+    if not hasNegativeOnlyDomain then
         ( normalizeDomain delta aDomain
         , normalizeDomain delta bDomain
         )
+
+    else if Tuple.second aDomain > 0.0 || Tuple.second bDomain > 0.0 then
+        ( centralizeDomain aDomain
+        , centralizeDomain bDomain
+        )
+
+    else
+        ( aDomain
+        , bDomain
+        )
+
+
+domainsAreOpposites : ( Float, Float ) -> ( Float, Float ) -> Bool
+domainsAreOpposites ( aMin, aMax ) ( bMin, bMax ) =
+    (aMin == 0.0 && aMax >= 0.0 && bMax == 0.0 && bMin <= 0.0)
+        || (bMin == 0.0 && bMax >= 0.0 && aMax == 0.0 && aMin <= 0.0)
 
 
 toZeroDomain : ( Float, Float ) -> ( Float, Float )
@@ -58,7 +77,7 @@ toZeroDomain =
 
 toDomainDelta : ( Float, Float ) -> Float
 toDomainDelta ( min, max ) =
-    safeDivide (abs min) (abs max)
+    abs (safeDivide min max)
 
 
 normalizeDomain : Float -> ( Float, Float ) -> ( Float, Float )
@@ -68,10 +87,27 @@ normalizeDomain delta ( min, max ) =
     )
 
 
+centralizeDomain : ( Float, Float ) -> ( Float, Float )
+centralizeDomain ( min, max ) =
+    let
+        absMax : Float
+        absMax =
+            Basics.max (abs min) max
+    in
+    ( absMax * -1
+    , absMax
+    )
+
+
 safeDivide : Float -> Float -> Float
 safeDivide x y =
-    if y == 0.0 then
+    let
+        result : Float
+        result =
+            x / y
+    in
+    if isNaN result then
         0.0
 
     else
-        x / y
+        result
