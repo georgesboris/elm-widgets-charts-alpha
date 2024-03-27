@@ -350,21 +350,6 @@ toRenderData cfg xData =
                             (toScale spacings cfg.attrs.yAxis)
                             (toScale spacings cfg.attrs.zAxis)
 
-                -- ( Just
-                --     { y
-                --         | scale =
-                --             toScale spacings
-                --                 cfg.attrs.yAxis
-                --                 (Scale.domain y.scale)
-                --     }
-                -- , Just
-                --     { z
-                --         | scale =
-                --             toScale spacings
-                --                 cfg.attrs.zAxis
-                --                 (Scale.domain z.scale)
-                --     }
-                -- )
                 _ ->
                     ( yBefore
                         |> Maybe.map (\y -> toScale spacings cfg.attrs.yAxis (Scale.domain y.scale))

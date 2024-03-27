@@ -59,7 +59,7 @@ date =
 
 dates : List Date
 dates =
-    List.range 1 3
+    List.range 1 59
         |> List.map (\i -> Date.fromCalendarDate 2023 Jan i)
 
 
@@ -126,11 +126,11 @@ main =
                                     }
                             , y =
                                 W.Chart.axisList
-                                    [ W.Chart.distribution ]
+                                    []
                                     { data = List.range 0 9
                                     , toLabel = String.fromInt
                                     , toColor = W.Chart.Colors.colorByIndexSkipping W.Chart.Colors.rainbow
-                                    , toValue = \_ -> purchasesByDay
+                                    , toValue = \_ -> purchasesByDay >> Maybe.map (\x -> x - 2000)
                                     }
                             }
                             |> W.Chart.withActive (Maybe.map Tuple.first model.onClick)
@@ -151,12 +151,11 @@ main =
                             , y =
                                 W.Chart.axisList
                                     [ W.Chart.axisLabel "Y Axis"
-                                    , W.Chart.distribution
                                     ]
                                     { data = List.range 0 9
                                     , toLabel = String.fromInt
                                     , toColor = W.Chart.Colors.colorByIndexSkipping W.Chart.Colors.rainbow
-                                    , toValue = \_ -> purchasesByDay
+                                    , toValue = \_ -> purchasesByDay >> Maybe.map (\x -> x - 2000)
                                     }
                             , z =
                                 W.Chart.axisList
@@ -218,7 +217,7 @@ main =
                             [ W.Chart.Bar.fromYZ []
                             , W.Chart.Tooltip.fromYZ []
                             ]
-                    , chartY
+                    , chartYZ
                         |> W.Chart.view
                             [ W.Chart.Line.fromY []
                             , W.Chart.Tooltip.fromY

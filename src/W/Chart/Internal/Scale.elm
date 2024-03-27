@@ -40,9 +40,13 @@ normalizeDomains a b =
                 (toDomainDelta aDomain)
                 (toDomainDelta bDomain)
     in
-    ( normalizeDomain delta aDomain
-    , normalizeDomain delta bDomain
-    )
+    if delta == 0 then
+        ( a, b )
+
+    else
+        ( normalizeDomain delta aDomain
+        , normalizeDomain delta bDomain
+        )
 
 
 toZeroDomain : ( Float, Float ) -> ( Float, Float )
@@ -54,7 +58,7 @@ toZeroDomain =
 
 toDomainDelta : ( Float, Float ) -> Float
 toDomainDelta ( min, max ) =
-    abs (safeDivide min max)
+    safeDivide (abs min) (abs max)
 
 
 normalizeDomain : Float -> ( Float, Float ) -> ( Float, Float )
@@ -66,13 +70,8 @@ normalizeDomain delta ( min, max ) =
 
 safeDivide : Float -> Float -> Float
 safeDivide x y =
-    let
-        result : Float
-        result =
-            x / y
-    in
-    if isNaN result then
+    if y == 0.0 then
         0.0
 
     else
-        result
+        x / y
