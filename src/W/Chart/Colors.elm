@@ -40,11 +40,13 @@ fromList c cs =
 -- Colors
 
 
+{-| -}
 toColors : Palette -> List String
 toColors (Palette _ _ colors) =
     List.map baseShade (Array.toList colors)
 
 
+{-| -}
 toColorWithShades : Palette -> List String
 toColorWithShades (Palette _ _ colors) =
     colors
@@ -55,17 +57,20 @@ toColorWithShades (Palette _ _ colors) =
             )
 
 
+{-| -}
 toColorWithShadesSkipping : Palette -> List String
 toColorWithShadesSkipping ((Palette i _ _) as palette) =
     List.range 0 ((i * shadesWithContrastCount) - 1)
         |> List.map (colorByIndexSkipping palette)
 
 
+{-| -}
 mapWithColors : Palette -> (String -> a -> b) -> List a -> List b
 mapWithColors =
     mapWithColorsBy colorByIndex
 
 
+{-| -}
 mapWithColorsSkipping : Palette -> (String -> a -> b) -> List a -> List b
 mapWithColorsSkipping =
     mapWithColorsBy colorByIndexSkipping
