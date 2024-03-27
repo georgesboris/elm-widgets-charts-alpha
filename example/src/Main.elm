@@ -15,13 +15,6 @@ import W.Chart.Tooltip
 import W.Styles
 
 
-
--- type alias Point =
---     W.Chart.PointXYZ Date.Date Int TrigFunction
--- type alias Point =
---     W.Chart.PointXY Date.Date Int
-
-
 type alias Model =
     { onClick : Maybe ( W.Chart.Coordinates, String )
     , onHover : Maybe ( W.Chart.Coordinates, String )
@@ -136,7 +129,7 @@ main =
                                     [ W.Chart.distribution ]
                                     { data = List.range 0 9
                                     , toLabel = String.fromInt
-                                    , toColor = W.Chart.Colors.rainbow
+                                    , toColor = W.Chart.Colors.colorByIndexSkipping W.Chart.Colors.rainbow
                                     , toValue = \_ -> purchasesByDay
                                     }
                             }
@@ -162,7 +155,7 @@ main =
                                     ]
                                     { data = List.range 0 9
                                     , toLabel = String.fromInt
-                                    , toColor = W.Chart.Colors.rainbow
+                                    , toColor = W.Chart.Colors.colorByIndexSkipping W.Chart.Colors.rainbow
                                     , toValue = \_ -> purchasesByDay
                                     }
                             , z =
@@ -327,7 +320,7 @@ trigFnColor v =
                 Sin ->
                     1
     in
-    W.Chart.Colors.purple index
+    W.Chart.Colors.colorByIndex W.Chart.Colors.purple index
 
 
 type alias Data =
@@ -345,7 +338,7 @@ zDataset =
         |> List.indexedMap
             (\index ( label, fn ) ->
                 { label = label
-                , color = W.Chart.Colors.contrast (index + 3)
+                , color = W.Chart.Colors.colorByIndex W.Chart.Colors.mix (index + 3)
                 , toValue = fn
                 }
             )

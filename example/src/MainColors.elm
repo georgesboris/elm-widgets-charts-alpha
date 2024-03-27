@@ -29,7 +29,8 @@ main =
                 [ ( "Cool", W.Chart.Colors.cool )
                 , ( "Warm", W.Chart.Colors.warm )
                 , ( "Rainbow", W.Chart.Colors.rainbow )
-                , ( "Contrast", W.Chart.Colors.contrast )
+                , ( "Mix", W.Chart.Colors.mix )
+                , ( "Mix Alt", W.Chart.Colors.mixB )
                 ]
             , viewPaletteList
                 [ ( "Rose", W.Chart.Colors.rose )
@@ -37,12 +38,10 @@ main =
                 , ( "Orange", W.Chart.Colors.orange )
                 , ( "Amber", W.Chart.Colors.amber )
                 , ( "Yellow", W.Chart.Colors.yellow )
-                , ( "Lime", W.Chart.Colors.lime )
                 , ( "Green", W.Chart.Colors.green )
                 , ( "Emerald", W.Chart.Colors.emerald )
                 , ( "Teal", W.Chart.Colors.teal )
                 , ( "Cyan", W.Chart.Colors.cyan )
-                , ( "Sky", W.Chart.Colors.sky )
                 , ( "Blue", W.Chart.Colors.blue )
                 , ( "Indigo", W.Chart.Colors.indigo )
                 , ( "Violet", W.Chart.Colors.violet )
@@ -61,18 +60,27 @@ viewPaletteList paletteList =
         |> W.Container.view [ W.Container.gap_2 ]
 
 
-viewPalette : ( String, Int -> String ) -> H.Html msg
+viewPalette : ( String, W.Chart.Colors.Palette ) -> H.Html msg
 viewPalette ( name, palette ) =
     let
         colors : List String
         colors =
-            toColors palette
+            W.Chart.Colors.toColors palette
 
         colorsCount : String
         colorsCount =
-            colors
+            colorsWithShades
                 |> List.length
                 |> String.fromInt
+
+        colorsWithShades : List String
+        colorsWithShades =
+            W.Chart.Colors.toColorWithShades palette
+
+        colorsWithShadesSkipping : List String
+        colorsWithShadesSkipping =
+            W.Chart.Colors.toColorWithShadesSkipping palette
+
     in
     W.Container.view
         [ W.Container.card
@@ -96,37 +104,16 @@ viewPalette ( name, palette ) =
                 ]
                 [ H.text colorsCount, H.text " colors" ]
             ]
-        , W.Container.view [ W.Container.gap_1 ]
-            (List.map viewColor colors)
+        , H.div
+            [ HA.style "display" "grid"
+            , HA.style "grid-template-columns" "repeat(3, minmax(0, 1fr))"
+            , HA.style "gap" "8px"
+            ]
+            [ W.Container.view [ W.Container.gap_1 ] (List.map viewColor colors)
+            , W.Container.view [ W.Container.gap_1 ] (List.map viewColor colorsWithShades)
+            , W.Container.view [ W.Container.gap_1 ] (List.map viewColor colorsWithShadesSkipping)
+            ]
         ]
-
-
-toColors : (Int -> String) -> List String
-toColors palette =
-    toColorsHelper palette 0 Set.empty []
-        |> List.reverse
-
-
-toColorsHelper : (Int -> String) -> Int -> Set String -> List String -> List String
-toColorsHelper palette index set acc =
-    let
-        nextColor : String
-        nextColor =
-            palette index
-
-        colorIsRepeated : Bool
-        colorIsRepeated =
-            Set.member nextColor set
-    in
-    if colorIsRepeated then
-        acc
-
-    else
-        toColorsHelper
-            palette
-            (index + 1)
-            (Set.insert nextColor set)
-            (nextColor :: acc)
 
 
 viewColor : String -> H.Html msg

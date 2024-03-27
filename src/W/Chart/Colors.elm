@@ -1,14 +1,16 @@
 module W.Chart.Colors exposing
-    ( contrast, rainbow, cool, warm
-    , amber, blue, cyan, emerald, gray, green, indigo, lime, orange, pink, purple, red, rose, sky, teal, violet, yellow
-    , Palette
+    ( mapWithColors, mapWithColorsSkipping, Palette
+    , mix, mixB, rainbow, cool, warm
+    , amber, blue, cyan, emerald, gray, green, indigo, orange, pink, purple, red, rose, teal, violet, yellow
+    , toColors, toColorWithShades, toColorWithShadesSkipping, colorByIndex, colorByIndexSkipping
     )
 
 {-| Accessible colors based on <https://www.s-ings.com/scratchpad/oklch-smooth/> .
 
-@docs contrast, rainbow, cool, warm
-@docs amber, blue, cyan, emerald, gray, green, indigo, lime, orange, pink, purple, red, rose, sky, teal, violet, yellow
-@docs Palette
+@docs mapWithColors, mapWithColorsSkipping, Palette
+@docs mix, mixB, rainbow, cool, warm
+@docs amber, blue, cyan, emerald, gray, green, indigo, orange, pink, purple, red, rose, teal, violet, yellow
+@docs toColors, toColorWithShades, toColorWithShadesSkipping, colorByIndex, colorByIndexSkipping
 
 -}
 
@@ -20,42 +22,119 @@ import Array
 
 
 {-| -}
-type alias Palette =
-    Int -> String
+type Palette
+    = Palette Int Color (Array.Array Color)
 
 
-toPalette : Color -> List Color -> Palette
-toPalette primaryColor otherColors i =
-    let
-        colorList : ColorList
-        colorList =
-            toColorList primaryColor otherColors
-    in
-    case colorList of
-        ColorSingleton c ->
-            getShadeContrast i c
+singleton : Color -> Palette
+singleton c =
+    Palette 1 c (Array.fromList [ c ])
 
-        ColorList length head tail ->
-            let
-                colorIndex : Int
-                colorIndex =
-                    modBy length i
 
-                color : Color
-                color =
-                    if colorIndex == 0 then
-                        head
+fromList : Color -> List Color -> Palette
+fromList c cs =
+    Palette (List.length cs + 1) c (Array.fromList (c :: cs))
 
-                    else
-                        tail
-                            |> Array.get (colorIndex - 1)
-                            |> Maybe.withDefault head
 
-                shadeIndex : Int
-                shadeIndex =
-                    (i // length) + modBy 2 i
-            in
-            getShadeContrast shadeIndex color
+
+-- Colors
+
+
+toColors : Palette -> List String
+toColors (Palette _ _ colors) =
+    List.map baseShade (Array.toList colors)
+
+
+toColorWithShades : Palette -> List String
+toColorWithShades (Palette _ _ colors) =
+    colors
+        |> Array.toList
+        |> List.concatMap
+            (\color ->
+                List.map ((|>) color) shades
+            )
+
+
+toColorWithShadesSkipping : Palette -> List String
+toColorWithShadesSkipping ((Palette i _ _) as palette) =
+    List.range 0 ((i * shadesWithContrastCount) - 1)
+        |> List.map (colorByIndexSkipping palette)
+
+
+mapWithColors : Palette -> (String -> a -> b) -> List a -> List b
+mapWithColors =
+    mapWithColorsBy colorByIndex
+
+
+mapWithColorsSkipping : Palette -> (String -> a -> b) -> List a -> List b
+mapWithColorsSkipping =
+    mapWithColorsBy colorByIndexSkipping
+
+
+mapWithColorsBy : (Palette -> Int -> String) -> Palette -> (String -> a -> b) -> List a -> List b
+mapWithColorsBy toColor ((Palette length _ colors) as palette) fn xs =
+    if List.length xs > length then
+        xs
+            |> List.indexedMap
+                (\index x -> fn (toColor palette index) x)
+
+    else
+        List.map2
+            (\color x -> fn (baseShade color) x)
+            (Array.toList colors)
+            xs
+
+
+{-| Get the color string for each color in a palette.
+Always skip color, move between shades after all colors were used.
+Shades are also slightly moved in a circular fashion to achieve more contrast.
+-}
+colorByIndexSkipping : Palette -> Int -> String
+colorByIndexSkipping (Palette length baseColor colors) i =
+    if length == 1 then
+        getShadeContrast i baseColor
+
+    else
+        let
+            colorIndex : Int
+            colorIndex =
+                modBy length i
+
+            color : Color
+            color =
+                colors
+                    |> Array.get colorIndex
+                    |> Maybe.withDefault baseColor
+
+            shadeIndex : Int
+            shadeIndex =
+                (i // length) + (modBy 2 colorIndex * 2)
+        in
+        getShadeContrast shadeIndex color
+
+
+{-| Get the color string for each color in a palette.
+Use all shades for a given color before moving to the next color.
+This is usually recommended since the user will be able to distinguish different shades if the colors are near each other.
+-}
+colorByIndex : Palette -> Int -> String
+colorByIndex (Palette length baseColor colors) i =
+    if length == 1 then
+        getShadeContrast i baseColor
+
+    else
+        let
+            colorIndex : Int
+            colorIndex =
+                modBy length (i // shadesWithContrastCount)
+
+            color : Color
+            color =
+                colors
+                    |> Array.get (colorIndex - 1)
+                    |> Maybe.withDefault baseColor
+        in
+        getShadeContrast i color
 
 
 
@@ -65,148 +144,132 @@ toPalette primaryColor otherColors i =
 {-| -}
 rose : Palette
 rose =
-    toPalette colorRose []
+    singleton colorRose
 
 
 {-| -}
 red : Palette
 red =
-    toPalette colorRed []
+    singleton colorRed
 
 
 {-| -}
 orange : Palette
 orange =
-    toPalette colorOrange []
+    singleton colorOrange
 
 
 {-| -}
 amber : Palette
 amber =
-    toPalette colorAmber []
+    singleton colorAmber
 
 
 {-| -}
 yellow : Palette
 yellow =
-    toPalette colorYellow []
-
-
-{-| -}
-lime : Palette
-lime =
-    toPalette colorLime []
+    singleton colorYellow
 
 
 {-| -}
 green : Palette
 green =
-    toPalette colorGreen []
+    singleton colorGreen
 
 
 {-| -}
 emerald : Palette
 emerald =
-    toPalette colorEmerald []
+    singleton colorEmerald
 
 
 {-| -}
 teal : Palette
 teal =
-    toPalette colorTeal []
+    singleton colorTeal
 
 
 {-| -}
 cyan : Palette
 cyan =
-    toPalette colorCyan []
-
-
-{-| -}
-sky : Palette
-sky =
-    toPalette colorSky []
+    singleton colorCyan
 
 
 {-| -}
 blue : Palette
 blue =
-    toPalette colorBlue []
+    singleton colorBlue
 
 
 {-| -}
 indigo : Palette
 indigo =
-    toPalette colorIndigo []
+    singleton colorIndigo
 
 
 {-| -}
 violet : Palette
 violet =
-    toPalette colorViolet []
+    singleton colorViolet
 
 
 {-| -}
 purple : Palette
 purple =
-    toPalette colorPurple []
+    singleton colorPurple
 
 
 {-| -}
 pink : Palette
 pink =
-    toPalette colorPink []
+    singleton colorPink
 
 
 {-| -}
 gray : Palette
 gray =
-    toPalette colorGray []
+    singleton colorGray
 
 
 {-| -}
 warm : Palette
 warm =
-    toPalette colorRose
-        [ colorYellow
+    fromList colorYellow
+        [ colorAmber
         , colorOrange
-        , colorViolet
         , colorRed
-        , colorPurple
+        , colorRose
         , colorPink
-        , colorAmber
+        , colorPurple
         ]
 
 
 {-| -}
 cool : Palette
 cool =
-    toPalette colorCyan
-        [ colorGreen
-        , colorSky
-        , colorEmerald
+    fromList colorViolet
+        [ colorIndigo
         , colorBlue
-        , colorLime
+        , colorCyan
         , colorTeal
-        , colorIndigo
+        , colorEmerald
+        , colorGreen
         ]
 
 
 {-| -}
 rainbow : Palette
 rainbow =
-    toPalette
+    fromList
         colorRose
         [ colorRed
         , colorOrange
         , colorAmber
         , colorYellow
-        , colorLime
         , colorGreen
         , colorEmerald
         , colorTeal
         , colorCyan
-        , colorSky
         , colorBlue
         , colorIndigo
         , colorViolet
@@ -216,25 +279,42 @@ rainbow =
 
 
 {-| -}
-contrast : Palette
-contrast =
-    toPalette
-        colorRose
+mix : Palette
+mix =
+    fromList colorRose
         [ colorBlue
-        , colorRed
-        , colorCyan
-        , colorOrange
-        , colorSky
-        , colorTeal
         , colorPurple
+        , colorAmber
+        , colorTeal
+        , colorPink
+        , colorOrange
+        , colorViolet
+        , colorCyan
+        , colorGreen
+        , colorRed
+        , colorYellow
         , colorIndigo
         , colorEmerald
-        , colorAmber
-        , colorYellow
-        , colorViolet
-        , colorLime
-        , colorPink
+        ]
+
+
+{-| -}
+mixB : Palette
+mixB =
+    fromList colorViolet
+        [ colorRose
+        , colorBlue
         , colorGreen
+        , colorAmber
+        , colorTeal
+        , colorPink
+        , colorIndigo
+        , colorEmerald
+        , colorPurple
+        , colorOrange
+        , colorCyan
+        , colorRed
+        , colorYellow
         ]
 
 
@@ -312,20 +392,6 @@ colorYellow =
     }
 
 
-colorLime : Color
-colorLime =
-    { l10 = "#eef2d4"
-    , l20 = "#e3ed9f"
-    , l30 = "#d4e360"
-    , l40 = "#c1d126"
-    , l50 = "#aab900"
-    , l60 = "#8e9b00"
-    , l70 = "#6f7900"
-    , l80 = "#4f5600"
-    , l90 = "#2d3100"
-    }
-
-
 colorGreen : Color
 colorGreen =
     { l10 = "#e1f5d8"
@@ -379,20 +445,6 @@ colorCyan =
     , l70 = "#0a7a80"
     , l80 = "#05595e"
     , l90 = "#003538"
-    }
-
-
-colorSky : Color
-colorSky =
-    { l10 = "#daf4ff"
-    , l20 = "#b9eafe"
-    , l30 = "#84dcfe"
-    , l40 = "#4dcbf6"
-    , l50 = "#09b5e3"
-    , l60 = "#069ac2"
-    , l70 = "#077a9b"
-    , l80 = "#065871"
-    , l90 = "#003344"
     }
 
 
@@ -481,25 +533,6 @@ colorGray =
 
 
 
--- ColorList
-
-
-type ColorList
-    = ColorSingleton Color
-    | ColorList Int Color (Array.Array Color)
-
-
-toColorList : Color -> List Color -> ColorList
-toColorList head tail =
-    case tail of
-        [] ->
-            ColorSingleton head
-
-        _ ->
-            ColorList (List.length tail + 1) head (Array.fromList tail)
-
-
-
 -- Color
 
 
@@ -516,15 +549,22 @@ type alias Color =
     }
 
 
+baseShade : Color -> String
+baseShade =
+    .l50
+
+
+shades : List (Color -> String)
+shades =
+    [ .l60
+    , .l40
+    , .l20
+    ]
+
+
 shadesWithContrast : Array.Array (Color -> String)
 shadesWithContrast =
-    Array.fromList
-        [ .l60
-        , .l30
-        , .l50
-        , .l70
-        , .l20
-        ]
+    Array.fromList shades
 
 
 shadesWithContrastCount : Int
@@ -536,5 +576,5 @@ getShadeContrast : Int -> Color -> String
 getShadeContrast i c =
     shadesWithContrast
         |> Array.get (modBy shadesWithContrastCount i)
-        |> Maybe.withDefault .l60
+        |> Maybe.withDefault baseShade
         |> (\fn -> fn c)
