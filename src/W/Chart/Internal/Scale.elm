@@ -62,12 +62,6 @@ normalizeDomains a b =
         )
 
 
-domainsAreOpposites : ( Float, Float ) -> ( Float, Float ) -> Bool
-domainsAreOpposites ( aMin, aMax ) ( bMin, bMax ) =
-    (aMin == 0.0 && aMax >= 0.0 && bMax == 0.0 && bMin <= 0.0)
-        || (bMin == 0.0 && bMax >= 0.0 && aMax == 0.0 && aMin <= 0.0)
-
-
 toZeroDomain : ( Float, Float ) -> ( Float, Float )
 toZeroDomain =
     Tuple.mapBoth
