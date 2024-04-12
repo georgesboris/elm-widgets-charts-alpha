@@ -29,12 +29,10 @@ normalizeDomains a b =
         aDomain : ( Float, Float )
         aDomain =
             toZeroDomain a
-                |> Debug.log "aDomain"
 
         bDomain : ( Float, Float )
         bDomain =
             toZeroDomain b
-                |> Debug.log "bDomain"
 
         delta : Float
         delta =
