@@ -151,7 +151,7 @@ axisValue v =
 
                 zConfig : AxisConfig msg x y z
                 zConfig =
-                    attr.yConfig
+                    attr.zConfig
             in
             { attr | yConfig = { yConfig | axisValue = Just v }, zConfig = { zConfig | axisValue = Just v } }
         )
