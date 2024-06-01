@@ -151,6 +151,7 @@ main =
                             , y =
                                 W.Chart.axisList
                                     [ W.Chart.axisLabel "Y Axis"
+                                    , W.Chart.stacked
                                     ]
                                     { data = List.range 0 9
                                     , toLabel = String.fromInt
@@ -161,7 +162,7 @@ main =
                                 W.Chart.axisList
                                     [ W.Chart.axisLabel "Z Axis"
                                     ]
-                                    { data = [ Cos, Sin ]
+                                    { data = [ Cos ]
                                     , toLabel = trigFnLabel
                                     , toColor = trigFnColor
                                     , toValue = \fn x -> Just (applyTrigFn fn (toFloat (Date.toRataDie x)))
@@ -219,7 +220,7 @@ main =
                             ]
                     , chartYZ
                         |> W.Chart.view
-                            [ W.Chart.Line.fromY []
+                            [ W.Chart.Line.fromY [ W.Chart.Line.areaAlways ]
                             , W.Chart.Tooltip.fromY
                                 [ W.Chart.Tooltip.yAxisLabel [ H.text "YYY" ]
                                 , W.Chart.Tooltip.headerValue

@@ -87,6 +87,7 @@ import TypedSvg.Attributes.InPx as SAP
 import TypedSvg.Core as SC
 import TypedSvg.Types as ST
 import W.Chart.Internal
+import W.Chart.Internal.Tick
 import W.Chart.Internal.Voronoi
 import W.Svg.Attributes
 
@@ -964,7 +965,7 @@ viewXGrid ctx =
     if ctx.x.showGrid then
         ctx.points.byX
             |> Dict.values
-            |> toSteps ctx.x.ticks
+            |> W.Chart.Internal.Tick.toTicks ctx.x.ticks
             |> List.map
                 (\{ x } ->
                     S.line
@@ -981,36 +982,6 @@ viewXGrid ctx =
 
     else
         H.text ""
-
-
-toSteps : Int -> List a -> List a
-toSteps ticks_ xs =
-    let
-        length : Int
-        length =
-            List.length xs
-
-        mod : Int
-        mod =
-            ticks_
-                |> min length
-                |> max 1
-                |> (\t -> length // t)
-    in
-    xs
-        |> List.foldl
-            (\x ( index, acc ) ->
-                ( index + 1
-                , if modBy mod index == 0 then
-                    x :: acc
-
-                  else
-                    acc
-                )
-            )
-            ( 0, [] )
-        |> Tuple.second
-        |> List.reverse
 
 
 viewXAxis : Context x y z -> SC.Svg msg
@@ -1041,7 +1012,7 @@ viewXAxis ctx =
                     []
                 , ctx.points.byX
                     |> Dict.values
-                    |> toSteps ctx.x.ticks
+                    |> W.Chart.Internal.Tick.toTicks ctx.x.ticks
                     |> List.concatMap
                         (\xData ->
                             [ S.line
