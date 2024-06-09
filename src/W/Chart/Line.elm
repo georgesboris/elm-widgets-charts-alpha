@@ -168,9 +168,7 @@ viewLineWithArea axis attrs index ( chartDatum, points ) =
 
         gradientId : String
         gradientId =
-            axis.label
-                |> Maybe.withDefault "axis"
-                |> (\label -> "gradient-" ++ String.replace " " "_" label ++ "-" ++ String.fromInt index)
+            "ew-charts--g-" ++ String.replace " " "_" chartDatum.color
     in
     S.g
         []
