@@ -168,7 +168,7 @@ viewLineWithArea axis attrs index ( chartDatum, points ) =
 
         gradientId : String
         gradientId =
-            "ew-charts--g-" ++ String.replace " " "_" chartDatum.color
+            "ew-charts--g-" ++ String.replace "#" "_" chartDatum.color
     in
     S.g
         []
