@@ -16,6 +16,7 @@ module W.Chart.Internal exposing
     , DataAttrs
     , DataPoint
     , HoverAttrs
+    , LabelsType(..)
     , Padding
     , RenderAxisX
     , RenderAxisYZ
@@ -79,6 +80,7 @@ type alias WidgetData msg x y z point =
     { main : Maybe (Context x y z -> Svg.Svg msg)
     , background : Maybe (Context x y z -> Svg.Svg msg)
     , foreground : Maybe (Context x y z -> Svg.Svg msg)
+    , labels : Maybe (Context x y z -> Svg.Svg msg)
     , hover : Maybe (Context x y z -> Coordinates -> point -> Svg.Svg msg)
     }
 
@@ -140,6 +142,8 @@ type alias RenderAxisYZ a =
     , format : Float -> String
     , showAxis : Bool
     , showGrid : Bool
+    , showLabels : Bool
+    , totalAsLabels : Bool
     }
 
 
@@ -422,6 +426,8 @@ toRenderData cfg xData =
                 , format = cfg.attrs.yAxis.format
                 , showAxis = cfg.attrs.yAxis.showAxis
                 , showGrid = cfg.attrs.yAxis.showGrid
+                , showLabels = cfg.attrs.zAxis.labelsType /= NoLabels
+                , totalAsLabels = cfg.attrs.zAxis.labelsType == TotalLabels
                 }
             , z =
                 { data = zDataList
@@ -434,6 +440,8 @@ toRenderData cfg xData =
                 , format = cfg.attrs.zAxis.format
                 , showAxis = cfg.attrs.zAxis.showAxis
                 , showGrid = cfg.attrs.zAxis.showGrid
+                , showLabels = cfg.attrs.zAxis.labelsType /= NoLabels
+                , totalAsLabels = cfg.attrs.zAxis.labelsType == TotalLabels
                 }
             }
         }
@@ -663,6 +671,7 @@ type Attribute msg
 
 type alias Attributes msg =
     { debug : Bool
+    , labels : Bool
     , width : Float
     , ratio : Float
     , fontSize :
@@ -689,6 +698,12 @@ type ScaleType
     | Logarithmic Float
 
 
+type LabelsType
+    = NoLabels
+    | TotalLabels
+    | ValueLabels
+
+
 type StackType
     = NotStacked
     | Stacked
@@ -710,6 +725,7 @@ type alias AxisAttributes =
     , ticks : Int
     , scale : ScaleType
     , stackType : StackType
+    , labelsType : LabelsType
     , showAxis : Bool
     , showGrid : Bool
     }
@@ -751,6 +767,7 @@ defaultAxisAttributes =
     , ticks = 5
     , scale = Linear
     , stackType = NotStacked
+    , labelsType = NoLabels
     , showAxis = True
     , showGrid = True
     }
@@ -759,6 +776,7 @@ defaultAxisAttributes =
 defaultAttrs : Attributes msg
 defaultAttrs =
     { debug = False
+    , labels = False
     , width = 960
     , ratio = 0.5
     , fontSize =

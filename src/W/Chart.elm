@@ -1,7 +1,7 @@
 module W.Chart exposing
     ( globalStyles, fromX, fromXY, fromXYZ, ConfigX, ConfigXY, ConfigXYZ, Config, ChartAttribute
     , xAxis, axis, axisList
-    , axisLabel, defaultValue, format, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
+    , axisLabel, defaultValue, format, showLabels, totalAsLabels, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
     , width, ratio, background
     , padding, paddingX, paddingY, paddingCustom
     , fontSize
@@ -26,7 +26,7 @@ module W.Chart exposing
 
 # Axis Attributes
 
-@docs axisLabel, defaultValue, format, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
+@docs axisLabel, defaultValue, format, showLabels, totalAsLabels, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
 
 
 # Styles
@@ -598,6 +598,18 @@ noGridLines =
     Attr.attr (\attrs -> { attrs | showGrid = False })
 
 
+{-| -}
+showLabels : AxisAttribute
+showLabels =
+    Attr.attr (\attrs -> { attrs | labelsType = W.Chart.Internal.ValueLabels })
+
+
+{-| -}
+totalAsLabels : AxisAttribute
+totalAsLabels =
+    Attr.attr (\attrs -> { attrs | labelsType = W.Chart.Internal.TotalLabels })
+
+
 
 -- View
 
@@ -655,8 +667,9 @@ view widgets (W.Chart.Internal.Config cfg) =
                             , viewWidgets "bg" .background renderData widgets
                             , viewWidgets "main" .main renderData widgets
                             , viewWidgets "fg" .foreground renderData widgets
+                            , viewWidgetLabels d.ctx widgets
                             , viewActive cfg d.ctx widgets
-                            , viewHover cfg d.ctx widgets
+                            , viewHoverAndLabels cfg d.ctx widgets
                             ]
                         ]
                     ]
@@ -680,6 +693,29 @@ viewWidgets class getter (W.Chart.Internal.RenderData { ctx }) widgets =
         |> S.g [ SA.class [ "ew-charts--" ++ class ] ]
 
 
+viewWidgetLabels :
+    String
+    -> (W.Chart.Internal.WidgetData msg x y z point -> Maybe (Context x y z -> Svg.Svg msg))
+    -> (Context x y z -> Bool)
+    -> W.Chart.Internal.RenderData msg x y z
+    -> List (W.Chart.Internal.Widget msg x y z point)
+    -> SC.Svg msg
+viewWidgetLabels class getter predicate (W.Chart.Internal.RenderData { ctx }) widgets =
+    S.g [ SA.class [ "ew-charts--labels" ] ]
+        [ if ctx.y.showLabels then
+            widgets
+                |> List.filterMap (\(W.Chart.Internal.Widget w) -> Maybe.map (\el_ -> el_ ctx) (getter w))
+
+          else
+            H.text ""
+        , if ctx.z.showLabels then
+            H.text ""
+
+          else
+            H.text ""
+        ]
+
+
 
 -- Hover Elements
 
@@ -695,27 +731,27 @@ viewActive config ctx widgets =
         |> Maybe.map
             (\point ->
                 S.g [ Svg.Attributes.class "ew-charts--active" ]
-                    (viewChartPoint ctx ( point, config.toPoint point ) widgets)
+                    [ viewHoverWidgets ctx point (config.toPoint point) widgets ]
             )
         |> Maybe.withDefault (H.text "")
 
 
-viewHover :
+viewHoverAndLabels :
     W.Chart.Internal.ConfigData msg x y z point
     -> W.Chart.Internal.Context x y z
     -> List (W.Chart.Internal.Widget msg x y z point)
     -> SC.Svg msg
-viewHover config ctx widgets =
-    config.hover
-        |> Maybe.map
-            (\hoverAttrs ->
-                if hoverAttrs.nearest then
-                    viewHoverNearest config hoverAttrs ctx widgets
+viewHoverAndLabels config ctx widgets =
+    case config.hover of
+        Just hoverAttrs ->
+            if hoverAttrs.nearest then
+                viewHoverNearest config hoverAttrs ctx widgets
 
-                else
-                    viewHoverX config hoverAttrs ctx widgets
-            )
-        |> Maybe.withDefault (H.text "")
+            else
+                viewHoverX config hoverAttrs ctx widgets
+
+        Nothing ->
+            H.text ""
 
 
 viewHoverX :
@@ -796,7 +832,9 @@ viewHoverContent :
 viewHoverContent ctx pointData point widgets =
     S.g
         [ SA.class [ "ew-charts--hover" ] ]
-        (viewChartPointCoords ctx pointData :: viewChartPoint ctx ( pointData, point ) widgets)
+        [ viewChartPointCoords ctx pointData
+        , viewHoverWidgets ctx pointData point widgets
+        ]
 
 
 viewChartPointCoords :
@@ -816,24 +854,6 @@ viewChartPointCoords ctx point =
 
         _ ->
             H.text ""
-
-
-viewChartPoint :
-    W.Chart.Internal.Context x y z
-    -> ( W.Chart.Internal.ChartPoint x y z, point )
-    -> List (W.Chart.Internal.Widget msg x y z point)
-    -> List (SC.Svg msg)
-viewChartPoint ctx ( pointData, point ) widgets =
-    [ viewHoverWidgets ctx pointData point widgets
-
-    -- , if config.activePoint == Nothing then
-    --     W.Chart.Internal.Tooltip.view ctx
-    --         pointData
-    --         tooltipMargin
-    --         [ W.Chart.Internal.Tooltip.viewPoints ctx pointData ]
-    --   else
-    --     H.text ""
-    ]
 
 
 viewHoverAttrs : W.Chart.Internal.HoverAttrs msg point -> W.Chart.Internal.ChartPoint x y z -> point -> List (Svg.Attribute msg)
@@ -1169,6 +1189,12 @@ globalStyles =
             }
             .ew-charts--hover-target:hover + .ew-charts--hover {
                 display: block;
+            }
+
+            /* Labels */
+
+            .ew-charts:has(.ew-charts--hover-target:hover) .ew-charts--labels {
+                display: none;
             }
 
             /* Debug */

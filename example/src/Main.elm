@@ -126,7 +126,7 @@ main =
                                     }
                             , y =
                                 W.Chart.axisList
-                                    []
+                                    [ W.Chart.showLabels ]
                                     { data = List.range 0 9
                                     , toLabel = String.fromInt
                                     , toColor = W.Chart.Colors.colorByIndexSkipping W.Chart.Colors.rainbow
@@ -161,6 +161,7 @@ main =
                             , z =
                                 W.Chart.axisList
                                     [ W.Chart.axisLabel "Z Axis"
+                                    , W.Chart.showLabels
                                     ]
                                     { data = [ Cos ]
                                     , toLabel = trigFnLabel
@@ -173,8 +174,6 @@ main =
                                 [ W.Chart.onClick (\c a -> OnClick c (toColor a))
                                 , W.Chart.onMouseEnter (\c a -> OnMouseEnter c (toColor a))
                                 , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
-
-                                -- , W.Chart.groupByXY
                                 ]
                 in
                 viewWrapper model
@@ -221,6 +220,7 @@ main =
                     , chartYZ
                         |> W.Chart.view
                             [ W.Chart.Line.fromY [ W.Chart.Line.areaAlways ]
+                            , W.Chart.Line.fromZ []
                             , W.Chart.Tooltip.fromY
                                 [ W.Chart.Tooltip.yAxisLabel [ H.text "YYY" ]
                                 , W.Chart.Tooltip.headerValue
@@ -410,46 +410,3 @@ viewColor ( top, right ) maybeColor =
                     []
             )
         |> Maybe.withDefault (H.text "")
-
-
-
--- main : H.Html msg
--- main =
---     viewCharts
---         (W.Chart.config [ W.Chart.tooltipByNearest ]
---             { data = List.range 0 10
---             , toLabel = \i -> String.fromInt i ++ "px"
---             }
---             |> W.Chart.withYList
---                 [ W.Chart.axisLabel "geometry"
---                 ]
---                 { data = yDataset
---                 , toLabel = .label
---                 , toColor = .color
---                 , toValue = \{ toValue } x -> Just (toValue (toFloat x))
---                 }
---             |> W.Chart.withZList
---                 [ W.Chart.axisLabel "functions"
---                 ]
---                 { data = zDataset
---                 , toLabel = .label
---                 , toColor = .color
---                 , toValue = \{ toValue } x -> Just (toValue (toFloat x))
---                 }
---         )
---         [ [ W.Chart.Bar.yzBars ]
---         , [ W.Chart.Line.yLine, W.Chart.Line.zLine ]
--- , [ W.Chart.Bubble.viewZ
---         [ W.Chart.Bubble.colorFromRadiusPercentile
---             (Scale.Color.viridisInterpolator >> Color.toCssString)
---         ]
---         { toRadius = \x _ -> toFloat x / 20
---         }
---   , W.Chart.Bubble.viewY
---         [ W.Chart.Bubble.colorFromRadiusPercentile
---             (Scale.Color.viridisInterpolator >> Color.toCssString)
---         ]
---         { toRadius = \x _ -> toFloat x / 20
---         }
---   ]
--- ]

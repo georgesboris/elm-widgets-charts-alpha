@@ -24,6 +24,7 @@ import TypedSvg.Types as ST
 import W.Chart
 import W.Chart.Internal
 import W.Chart.Widget
+import W.Chart.Widget.Label
 import W.Svg.Circle
 
 
@@ -33,6 +34,7 @@ fromY =
     Attr.withAttrs defaultAttrs
         (\attrs ->
             W.Chart.Widget.fromY (\ctx -> viewLines attrs ctx.y ctx.points.y)
+                |> W.Chart.Widget.withLabels (\ctx _ _ -> W.Chart.Widget.Label.viewList)
                 |> W.Chart.Widget.withHover (\_ _ point -> viewHover point.x point.y)
         )
 
@@ -43,6 +45,7 @@ fromZ =
     Attr.withAttrs defaultAttrs
         (\attrs ->
             W.Chart.Widget.fromZ (\ctx -> viewLines attrs ctx.z ctx.points.z)
+                |> W.Chart.Widget.withLabels (\ctx _ point -> W.Chart.Widget.Label.viewList ctx point.x point.z)
                 |> W.Chart.Widget.withHover (\_ _ point -> viewHover point.x point.z)
         )
 
@@ -145,7 +148,7 @@ viewLines attrs axis axisPoints =
 
 
 viewLineWithArea : W.Chart.Internal.RenderAxisYZ a -> Attributes -> Int -> ( W.Chart.Internal.ChartDatum a, List ( W.Chart.Internal.DataPoint x, W.Chart.Internal.DataPoint a ) ) -> SC.Svg msg
-viewLineWithArea axis attrs index ( chartDatum, points ) =
+viewLineWithArea _ attrs index ( chartDatum, points ) =
     let
         areaPoints : List (Maybe ( ( Float, Float ), ( Float, Float ) ))
         areaPoints =

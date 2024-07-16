@@ -1,6 +1,7 @@
 module W.Chart.Widget exposing
     ( empty, fromX, fromY, fromZ, fromYZ
     , withBackground, withForeground
+    , withLabels
     , withHover
     )
 
@@ -8,7 +9,8 @@ module W.Chart.Widget exposing
 
 @docs empty, fromX, fromY, fromZ, fromYZ
 @docs withBackground, withForeground
-@docs withHover
+@docs withLabels
+@docs withHoverpoints
 
 -}
 
@@ -29,6 +31,7 @@ empty =
         , background = Nothing
         , foreground = Nothing
         , hover = Nothing
+        , labels = Nothing
         }
 
 
@@ -40,6 +43,7 @@ fromX a =
         , background = Nothing
         , foreground = Nothing
         , hover = Nothing
+        , labels = Nothing
         }
 
 
@@ -51,6 +55,7 @@ fromY a =
         , background = Nothing
         , foreground = Nothing
         , hover = Nothing
+        , labels = Nothing
         }
 
 
@@ -62,6 +67,7 @@ fromZ a =
         , background = Nothing
         , foreground = Nothing
         , hover = Nothing
+        , labels = Nothing
         }
 
 
@@ -73,6 +79,7 @@ fromYZ a =
         , background = Nothing
         , foreground = Nothing
         , hover = Nothing
+        , labels = Nothing
         }
 
 
@@ -100,6 +107,17 @@ withForeground :
     -> Widget msg x y z point
 withForeground v (Widget d) =
     Widget { d | foreground = Just v }
+
+
+{-| -}
+withLabels :
+    (W.Chart.Context x y z
+     -> Svg.Svg msg
+    )
+    -> Widget msg x y z point
+    -> Widget msg x y z point
+withLabels v (Widget d) =
+    Widget { d | labels = Just v }
 
 
 {-| -}

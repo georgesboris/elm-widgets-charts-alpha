@@ -38,15 +38,10 @@ fromY =
                 )
                 |> W.Chart.Widget.withHover
                     (\ctx ->
-                        let
-                            binScale : Scale.BandScale Int
-                            binScale =
-                                toBinScale attrs ctx (binCount ctx.y)
-                        in
                         \_ point ->
                             viewHover
                                 ctx.y
-                                binScale
+                                (toBinScale attrs ctx (binCount ctx.y))
                                 point.x.render
                                 (toIndexedMap .render ctx.y 0 point.y)
                     )
@@ -68,13 +63,11 @@ fromZ =
                 )
                 |> W.Chart.Widget.withHover
                     (\ctx ->
-                        let
-                            binScale : Scale.BandScale Int
-                            binScale =
-                                toBinScale attrs ctx (binCount ctx.z)
-                        in
                         \_ point ->
-                            viewHover ctx.z binScale point.x.render (toIndexedMap .render ctx.z 0 point.z)
+                            viewHover ctx.z
+                                (toBinScale attrs ctx (binCount ctx.z))
+                                point.x.render
+                                (toIndexedMap .render ctx.z 0 point.z)
                     )
         )
 
