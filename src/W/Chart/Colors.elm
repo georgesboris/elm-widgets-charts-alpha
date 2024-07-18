@@ -49,7 +49,7 @@ toColors (Palette _ _ colors) =
 {-| -}
 toColorWithShades : Palette -> Int -> List String
 toColorWithShades ((Palette length _ _) as palette) count =
-    List.range 0 (length * count)
+    List.range 0 ((length * count) - 1)
         |> mapWithColors palette (\c _ -> c)
 
 
@@ -68,7 +68,7 @@ mapWithColors (Palette paletteLength baseColor colors) fn xs =
                 1 ->
                     ( 2, shades2 )
 
-                3 ->
+                2 ->
                     ( 3, shades3 )
 
                 _ ->
@@ -269,20 +269,20 @@ mix =
 {-| -}
 mixB : Palette
 mixB =
-    fromList colorViolet
-        [ colorRose
-        , colorBlue
-        , colorGreen
-        , colorAmber
+    fromList colorEmerald
+        [ colorAmber
+        , colorRose
         , colorTeal
-        , colorPink
+        , colorBlue
+        , colorViolet
+        , colorRed
         , colorIndigo
-        , colorEmerald
         , colorPurple
         , colorOrange
         , colorCyan
-        , colorRed
         , colorYellow
+        , colorPink
+        , colorGreen
         ]
 
 
@@ -532,7 +532,7 @@ shades2 : Array.Array (Color -> String)
 shades2 =
     Array.fromList
         [ .l60
-        , .l40
+        , .l30
         ]
 
 
@@ -541,7 +541,7 @@ shades3 =
     Array.fromList
         [ .l60
         , .l40
-        , .l20
+        , .l30
         ]
 
 
@@ -549,7 +549,7 @@ shades4 : Array.Array (Color -> String)
 shades4 =
     Array.fromList
         [ .l70
-        , .l50
+        , .l60
         , .l40
-        , .l20
+        , .l30
         ]

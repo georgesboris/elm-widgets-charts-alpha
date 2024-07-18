@@ -96,12 +96,13 @@ viewPalette ( name, palette ) =
             ]
         , H.div
             [ HA.style "display" "grid"
-            , HA.style "grid-template-columns" "repeat(3, minmax(0, 1fr))"
+            , HA.style "grid-template-columns" "repeat(4, minmax(0, 1fr))"
             , HA.style "gap" "8px"
             ]
             [ W.Container.view [ W.Container.gap_1 ] (List.map viewColor (W.Chart.Colors.toColorWithShades palette 1))
             , W.Container.view [ W.Container.gap_1 ] (List.map viewColor (W.Chart.Colors.toColorWithShades palette 2))
             , W.Container.view [ W.Container.gap_1 ] (List.map viewColor (W.Chart.Colors.toColorWithShades palette 3))
+            , W.Container.view [ W.Container.gap_1 ] (List.map viewColor (W.Chart.Colors.toColorWithShades palette 4))
             ]
         ]
 
