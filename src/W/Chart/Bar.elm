@@ -1,14 +1,17 @@
 module W.Chart.Bar exposing
     ( fromY, fromZ, fromYZ
-    , margins, Attribute
+    , margins
     , labelFormat, labelFormatWithList, labelsAsPercentages, labelsOutside
+    , Attribute
     )
 
 {-|
 
 @docs fromY, fromZ, fromYZ
 
-@docs margins, Attribute
+@docs margins
+@docs labelFormat, labelFormatWithList, labelsAsPercentages, labelsOutside
+@docs Attribute
 
 -}
 

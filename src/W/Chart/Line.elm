@@ -1,14 +1,17 @@
 module W.Chart.Line exposing
     ( fromY, fromZ
-    , smooth, dashed, areaAlways, lineAlways, Attribute
+    , smooth, dashed, areaAlways, lineAlways
     , labelFormat, labelFormatWithList, labelsAsPercentages
+    , Attribute
     )
 
 {-|
 
 @docs fromY, fromZ
 
-@docs smooth, dashed, areaAlways, lineAlways, Attribute
+@docs smooth, dashed, areaAlways, lineAlways
+@docs labelFormat, labelFormatWithList, labelsAsPercentages
+@docs Attribute
 
 -}
 

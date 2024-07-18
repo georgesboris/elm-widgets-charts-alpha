@@ -142,7 +142,7 @@ main =
                                     ]
                                     { data = List.range 0 3
                                     , toLabel = String.fromInt
-                                    , toColor = W.Chart.Colors.colorByIndexSkipping W.Chart.Colors.rainbow
+                                    , toColor = W.Chart.Colors.colorByIndex W.Chart.Colors.rainbow
                                     , toValue = \_ -> purchasesByDay
                                     }
                             , z =

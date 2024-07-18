@@ -10,7 +10,7 @@ module W.Chart.Widget exposing
 @docs empty, fromX, fromY, fromZ, fromYZ
 @docs withBackground, withForeground
 @docs withLabels
-@docs withHoverpoints
+@docs withHover
 
 -}
 

@@ -1,5 +1,5 @@
 module W.Chart.Colors exposing
-    ( mapWithColors, Palette
+    ( mapWithColors, colorByIndex, Palette
     , mix, mixB, rainbow, cool, warm
     , amber, blue, cyan, emerald, gray, green, indigo, orange, pink, purple, red, rose, teal, violet, yellow
     , toColors, toColorWithShades
@@ -7,10 +7,10 @@ module W.Chart.Colors exposing
 
 {-| Accessible colors based on <https://www.s-ings.com/scratchpad/oklch-smooth/> .
 
-@docs mapWithColors, mapWithColorsSkipping, Palette
+@docs mapWithColors, colorByIndex, Palette
 @docs mix, mixB, rainbow, cool, warm
 @docs amber, blue, cyan, emerald, gray, green, indigo, orange, pink, purple, red, rose, teal, violet, yellow
-@docs toColors, toColorWithShades, toColorWithShadesSkipping, colorByIndex, colorByIndexSkipping
+@docs toColors, toColorWithShades
 
 -}
 
@@ -53,6 +53,41 @@ toColorWithShades ((Palette length _ _) as palette) count =
         |> mapWithColors palette (\c _ -> c)
 
 
+{-| -}
+colorByIndex : Palette -> Int -> String
+colorByIndex (Palette paletteLength baseColor colors) index =
+    let
+        shadeLength : Int
+        shadeLength =
+            4
+
+        shadeArray : Array.Array (Color -> String)
+        shadeArray =
+            shades4
+
+        shadeIndex : Int
+        shadeIndex =
+            modBy shadeLength index
+
+        colorIndex : Int
+        colorIndex =
+            modBy paletteLength (index // shadeLength)
+
+        color : Color
+        color =
+            colors
+                |> Array.get (modBy paletteLength colorIndex)
+                |> Maybe.withDefault baseColor
+    in
+    case Array.get shadeIndex shadeArray of
+        Just colorToShade ->
+            colorToShade color
+
+        Nothing ->
+            baseShade baseColor
+
+
+{-| -}
 mapWithColors : Palette -> (String -> a -> b) -> List a -> List b
 mapWithColors (Palette paletteLength baseColor colors) fn xs =
     let

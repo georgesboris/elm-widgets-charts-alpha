@@ -1,4 +1,14 @@
-module W.Chart.Widget.Label exposing (Attribute, format, formatAsPercentage, formatWithList, inside, view, viewBinsList, viewList)
+module W.Chart.Widget.Label exposing
+    ( view, viewList, viewBinsList
+    , format, formatAsPercentage, formatWithList, inside, Attribute
+    )
+
+{-|
+
+@docs view, viewList, viewBinsList
+@docs format, formatAsPercentage, formatWithList, inside, Attribute
+
+-}
 
 import Attr
 import Html as H
