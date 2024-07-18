@@ -1,12 +1,15 @@
 module W.Chart exposing
     ( globalStyles, fromX, fromXY, fromXYZ, ConfigX, ConfigXY, ConfigXYZ, Config, ChartAttribute
     , xAxis, axis, axisList
-    , axisLabel, defaultValue, format, showLabels, totalAsLabels, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
+    , axisLabel, defaultValue, format, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
+    , showLabels, dontAutoHideLabels
+    , id
     , width, ratio, background
     , padding, paddingX, paddingY, paddingCustom
     , fontSize
     , view, WidgetX, WidgetXY, WidgetXYZ, Widget
     , withActive, withHover, groupByXY, onClick, onMouseEnter, onMouseLeave, PointX, PointXY, PointXYZ
+    , onMouseEnterChart, onMouseLeaveChart
     , Context, Coordinates, Point, RenderDatum, AxisDataPoints
     , debug
     )
@@ -26,7 +29,17 @@ module W.Chart exposing
 
 # Axis Attributes
 
-@docs axisLabel, defaultValue, format, showLabels, totalAsLabels, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
+@docs axisLabel, defaultValue, format, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
+
+
+# Labels
+
+@docs showLabels, dontAutoHideLabels
+
+
+# Testing
+
+@docs id
 
 
 # Styles
@@ -60,6 +73,11 @@ module W.Chart exposing
 @docs withActive, withHover, groupByXY, onClick, onMouseEnter, onMouseLeave, PointX, PointXY, PointXYZ
 
 
+# Chart Interaction
+
+@docs onMouseEnterChart, onMouseLeaveChart
+
+
 # Helpful Types
 
 @docs Context, Coordinates, Point, RenderDatum, AxisDataPoints
@@ -76,6 +94,7 @@ import Axis
 import Dict
 import Html as H
 import Html.Attributes as HA
+import Html.Events as HE
 import Scale
 import Svg
 import Svg.Attributes
@@ -405,6 +424,12 @@ paddingCustom v =
 
 
 {-| -}
+id : String -> ChartAttribute msg
+id v =
+    Attr.attr (\a -> { a | id = Just v })
+
+
+{-| -}
 background : String -> ChartAttribute msg
 background v =
     Attr.attr (\a -> { a | background = v })
@@ -420,6 +445,30 @@ fontSize v =
 debug : ChartAttribute msg
 debug =
     Attr.attr (\a -> { a | debug = True })
+
+
+{-| -}
+showLabels : ChartAttribute msg
+showLabels =
+    Attr.attr (\attrs -> { attrs | labels = True })
+
+
+{-| -}
+dontAutoHideLabels : ChartAttribute msg
+dontAutoHideLabels =
+    Attr.attr (\attrs -> { attrs | labelsAutoHide = False })
+
+
+{-| -}
+onMouseEnterChart : msg -> ChartAttribute msg
+onMouseEnterChart fn =
+    Attr.attr (\a -> { a | onMouseEnter = Just fn })
+
+
+{-| -}
+onMouseLeaveChart : msg -> ChartAttribute msg
+onMouseLeaveChart fn =
+    Attr.attr (\a -> { a | onMouseLeave = Just fn })
 
 
 
@@ -598,18 +647,6 @@ noGridLines =
     Attr.attr (\attrs -> { attrs | showGrid = False })
 
 
-{-| -}
-showLabels : AxisAttribute
-showLabels =
-    Attr.attr (\attrs -> { attrs | labelsType = W.Chart.Internal.ValueLabels })
-
-
-{-| -}
-totalAsLabels : AxisAttribute
-totalAsLabels =
-    Attr.attr (\attrs -> { attrs | labelsType = W.Chart.Internal.TotalLabels })
-
-
 
 -- View
 
@@ -629,10 +666,14 @@ view widgets (W.Chart.Internal.Config cfg) =
                         renderData
                 in
                 H.div
-                    [ HA.class "ew-charts"
+                    [ cfg.attrs.id
+                        |> Maybe.map HA.id
+                        |> Maybe.withDefault (HA.class "")
+                    , HA.class "ew-charts"
                     , HA.classList
                         [ ( "m--unfocus", True || cfg.hover /= Nothing )
                         , ( "m--debug", d.attrs.debug )
+                        , ( "m--labels-autohide", d.attrs.labelsAutoHide )
                         ]
                     , HA.attribute "style"
                         ("--ew-font-sm:"
@@ -643,6 +684,8 @@ view widgets (W.Chart.Internal.Config cfg) =
                             ++ String.fromFloat d.ctx.fontSize.lg
                             ++ "px"
                         )
+                    , W.Chart.Internal.maybeAttr cfg.attrs.onMouseEnter HE.onMouseEnter
+                    , W.Chart.Internal.maybeAttr cfg.attrs.onMouseLeave HE.onMouseLeave
                     ]
                     [ Svg.svg
                         [ SA.viewBox 0 0 d.spacings.canvas.width d.spacings.canvas.height
@@ -667,7 +710,7 @@ view widgets (W.Chart.Internal.Config cfg) =
                             , viewWidgets "bg" .background renderData widgets
                             , viewWidgets "main" .main renderData widgets
                             , viewWidgets "fg" .foreground renderData widgets
-                            , viewWidgetLabels d.ctx widgets
+                            , viewWidgets "labels" .labels renderData widgets
                             , viewActive cfg d.ctx widgets
                             , viewHoverAndLabels cfg d.ctx widgets
                             ]
@@ -691,29 +734,6 @@ viewWidgets class getter (W.Chart.Internal.RenderData { ctx }) widgets =
     widgets
         |> List.filterMap (\(W.Chart.Internal.Widget w) -> Maybe.map (\el_ -> el_ ctx) (getter w))
         |> S.g [ SA.class [ "ew-charts--" ++ class ] ]
-
-
-viewWidgetLabels :
-    String
-    -> (W.Chart.Internal.WidgetData msg x y z point -> Maybe (Context x y z -> Svg.Svg msg))
-    -> (Context x y z -> Bool)
-    -> W.Chart.Internal.RenderData msg x y z
-    -> List (W.Chart.Internal.Widget msg x y z point)
-    -> SC.Svg msg
-viewWidgetLabels class getter predicate (W.Chart.Internal.RenderData { ctx }) widgets =
-    S.g [ SA.class [ "ew-charts--labels" ] ]
-        [ if ctx.y.showLabels then
-            widgets
-                |> List.filterMap (\(W.Chart.Internal.Widget w) -> Maybe.map (\el_ -> el_ ctx) (getter w))
-
-          else
-            H.text ""
-        , if ctx.z.showLabels then
-            H.text ""
-
-          else
-            H.text ""
-        ]
 
 
 
@@ -1193,7 +1213,12 @@ globalStyles =
 
             /* Labels */
 
-            .ew-charts:has(.ew-charts--hover-target:hover) .ew-charts--labels {
+            .ew-charts--labels {
+                animation: ew-charts--fade 0.2s ease-out forwards;
+            }
+
+            .ew-charts.m--labels-autohide:has(.ew-charts--hover-target:hover) .ew-charts--labels,
+            .ew-charts.m--labels-autohide:has(.ew-charts--active) .ew-charts--labels {
                 display: none;
             }
 

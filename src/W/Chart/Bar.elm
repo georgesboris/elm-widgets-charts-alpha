@@ -1,6 +1,7 @@
 module W.Chart.Bar exposing
     ( fromY, fromZ, fromYZ
     , margins, Attribute
+    , labelFormat, labelFormatWithList, labelsAsPercentages, labelsOutside
     )
 
 {-|
@@ -12,6 +13,7 @@ module W.Chart.Bar exposing
 -}
 
 import Attr
+import Dict
 import Scale
 import Svg
 import Svg.Attributes
@@ -21,6 +23,67 @@ import TypedSvg.Core as SC
 import W.Chart
 import W.Chart.Internal
 import W.Chart.Widget
+import W.Chart.Widget.Label
+
+
+
+-- Attributes
+
+
+{-| -}
+type alias Attribute =
+    Attr.Attr Attributes
+
+
+type alias Attributes =
+    { outerMargin : Float
+    , innerMargin : Float
+    , labelPosition : W.Chart.Widget.Label.Attribute
+    , labelFormat : W.Chart.Widget.Label.Attribute
+    }
+
+
+defaultAttrs : Attributes
+defaultAttrs =
+    { innerMargin = 0.2
+    , outerMargin = 0.5
+    , labelPosition = W.Chart.Widget.Label.inside
+    , labelFormat = Attr.none
+    }
+
+
+{-| -}
+margins : Float -> Float -> Attribute
+margins innerMargin outerMargin =
+    Attr.attr (\attr -> { attr | innerMargin = innerMargin, outerMargin = outerMargin })
+
+
+{-| -}
+labelsOutside : Attribute
+labelsOutside =
+    Attr.attr (\attr -> { attr | labelPosition = Attr.none })
+
+
+{-| -}
+labelFormat : (Float -> String) -> Attribute
+labelFormat fn =
+    Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.format fn })
+
+
+{-| -}
+labelFormatWithList : (List Float -> Float -> String) -> Attribute
+labelFormatWithList fn =
+    Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.formatWithList fn })
+
+
+{-| -}
+labelsAsPercentages : Attribute
+labelsAsPercentages =
+    Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.formatAsPercentage })
+
+
+
+-- Views
 
 
 {-| -}
@@ -36,6 +99,35 @@ fromY =
                         (toBinScale attrs ctx (binCount ctx.y))
                         (toIndexed ctx.y 0 ctx.points.y)
                 )
+                |> W.Chart.Widget.withLabels
+                    (\ctx ->
+                        let
+                            yCount : Int
+                            yCount =
+                                binCount ctx.y
+
+                            binScale : Scale.BandScale Int
+                            binScale =
+                                toBinScale attrs ctx yCount
+                        in
+                        W.Chart.Widget.Label.viewBinsList
+                            [ attrs.labelPosition
+                            , attrs.labelFormat
+                            ]
+                            { binScale = binScale
+                            , ctx = ctx
+                            , points =
+                                ctx.points.byX
+                                    |> Dict.values
+                                    |> List.map
+                                        (\data ->
+                                            { x = data.x
+                                            , y = data.y
+                                            , z = []
+                                            }
+                                        )
+                            }
+                    )
                 |> W.Chart.Widget.withHover
                     (\ctx ->
                         \_ point ->
@@ -61,6 +153,35 @@ fromZ =
                         (toBinScale attrs ctx (binCount ctx.z))
                         (toIndexed ctx.z 0 ctx.points.z)
                 )
+                |> W.Chart.Widget.withLabels
+                    (\ctx ->
+                        let
+                            zCount : Int
+                            zCount =
+                                binCount ctx.z
+
+                            binScale : Scale.BandScale Int
+                            binScale =
+                                toBinScale attrs ctx zCount
+                        in
+                        W.Chart.Widget.Label.viewBinsList
+                            [ attrs.labelPosition
+                            , attrs.labelFormat
+                            ]
+                            { binScale = binScale
+                            , ctx = ctx
+                            , points =
+                                ctx.points.byX
+                                    |> Dict.values
+                                    |> List.map
+                                        (\data ->
+                                            { x = data.x
+                                            , z = data.z
+                                            , y = []
+                                            }
+                                        )
+                            }
+                    )
                 |> W.Chart.Widget.withHover
                     (\ctx ->
                         \_ point ->
@@ -97,6 +218,39 @@ fromYZ =
                         , viewBars ctx ctx.z binScale (toIndexed ctx.z yCount ctx.points.z)
                         ]
                 )
+                |> W.Chart.Widget.withLabels
+                    (\ctx ->
+                        let
+                            yCount : Int
+                            yCount =
+                                binCount ctx.y
+
+                            zCount : Int
+                            zCount =
+                                binCount ctx.z
+
+                            binScale : Scale.BandScale Int
+                            binScale =
+                                toBinScale attrs ctx (yCount + zCount)
+                        in
+                        W.Chart.Widget.Label.viewBinsList
+                            [ attrs.labelPosition
+                            , attrs.labelFormat
+                            ]
+                            { binScale = binScale
+                            , ctx = ctx
+                            , points =
+                                ctx.points.byX
+                                    |> Dict.values
+                                    |> List.map
+                                        (\data ->
+                                            { x = data.x
+                                            , y = data.y
+                                            , z = data.z
+                                            }
+                                        )
+                            }
+                    )
                 |> W.Chart.Widget.withHover
                     (\ctx ->
                         let
@@ -128,34 +282,6 @@ fromYZ =
                                 ]
                     )
         )
-
-
-
--- Attributes
-
-
-{-| -}
-type alias Attribute =
-    Attr.Attr Attributes
-
-
-type alias Attributes =
-    { outerMargin : Float
-    , innerMargin : Float
-    }
-
-
-defaultAttrs : Attributes
-defaultAttrs =
-    { innerMargin = 0.2
-    , outerMargin = 0.5
-    }
-
-
-{-| -}
-margins : Float -> Float -> Attribute
-margins innerMargin outerMargin =
-    Attr.attr (\attr -> { attr | innerMargin = innerMargin, outerMargin = outerMargin })
 
 
 
@@ -269,11 +395,16 @@ viewBar attrs props =
 
 binCount : W.Chart.Internal.RenderAxisYZ a -> Int
 binCount axis =
-    if axis.isStacked then
-        1
+    case List.length axis.data of
+        0 ->
+            0
 
-    else
-        List.length axis.data
+        length ->
+            if axis.isStacked then
+                1
+
+            else
+                length
 
 
 toIndexedMap : (item -> a) -> W.Chart.Internal.RenderAxisYZ yz -> Int -> List item -> List ( Int, a )

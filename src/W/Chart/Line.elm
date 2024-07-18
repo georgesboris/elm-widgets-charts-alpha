@@ -1,6 +1,7 @@
 module W.Chart.Line exposing
     ( fromY, fromZ
     , smooth, dashed, areaAlways, lineAlways, Attribute
+    , labelFormat, labelFormatWithList, labelsAsPercentages
     )
 
 {-|
@@ -12,6 +13,7 @@ module W.Chart.Line exposing
 -}
 
 import Attr
+import Dict
 import Path
 import Shape
 import SubPath
@@ -34,7 +36,19 @@ fromY =
     Attr.withAttrs defaultAttrs
         (\attrs ->
             W.Chart.Widget.fromY (\ctx -> viewLines attrs ctx.y ctx.points.y)
-                |> W.Chart.Widget.withLabels (\ctx _ _ -> W.Chart.Widget.Label.viewList)
+                |> W.Chart.Widget.withLabels
+                    (\ctx ->
+                        W.Chart.Widget.Label.viewList [ attrs.labelFormat ]
+                            { ctx = ctx
+                            , points =
+                                ctx.points.byX
+                                    |> Dict.values
+                                    |> List.map
+                                        (\data ->
+                                            ( data.x.render, data.yRender )
+                                        )
+                            }
+                    )
                 |> W.Chart.Widget.withHover (\_ _ point -> viewHover point.x point.y)
         )
 
@@ -45,7 +59,19 @@ fromZ =
     Attr.withAttrs defaultAttrs
         (\attrs ->
             W.Chart.Widget.fromZ (\ctx -> viewLines attrs ctx.z ctx.points.z)
-                |> W.Chart.Widget.withLabels (\ctx _ point -> W.Chart.Widget.Label.viewList ctx point.x point.z)
+                |> W.Chart.Widget.withLabels
+                    (\ctx ->
+                        W.Chart.Widget.Label.viewList [ attrs.labelFormat ]
+                            { ctx = ctx
+                            , points =
+                                ctx.points.byX
+                                    |> Dict.values
+                                    |> List.map
+                                        (\data ->
+                                            ( data.x.render, data.zRender )
+                                        )
+                            }
+                    )
                 |> W.Chart.Widget.withHover (\_ _ point -> viewHover point.x point.z)
         )
 
@@ -63,6 +89,7 @@ type alias Attributes =
     { smooth : Bool
     , dashed : Bool
     , area : Maybe Bool
+    , labelFormat : W.Chart.Widget.Label.Attribute
     }
 
 
@@ -71,6 +98,7 @@ defaultAttrs =
     { smooth = False
     , dashed = False
     , area = Nothing
+    , labelFormat = Attr.none
     }
 
 
@@ -96,6 +124,24 @@ lineAlways =
 areaAlways : Attribute
 areaAlways =
     Attr.attr (\attr -> { attr | area = Just True })
+
+
+{-| -}
+labelFormat : (Float -> String) -> Attribute
+labelFormat fn =
+    Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.format fn })
+
+
+{-| -}
+labelFormatWithList : (List Float -> Float -> String) -> Attribute
+labelFormatWithList fn =
+    Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.formatWithList fn })
+
+
+{-| -}
+labelsAsPercentages : Attribute
+labelsAsPercentages =
+    Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.formatAsPercentage })
 
 
 

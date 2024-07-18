@@ -16,7 +16,6 @@ module W.Chart.Internal exposing
     , DataAttrs
     , DataPoint
     , HoverAttrs
-    , LabelsType(..)
     , Padding
     , RenderAxisX
     , RenderAxisYZ
@@ -42,6 +41,7 @@ module W.Chart.Internal exposing
     , formatFloat
     , formatPct
     , isJust
+    , maybeAttr
     , maybeFilter
     , maybeIf
     , toAxis
@@ -142,8 +142,6 @@ type alias RenderAxisYZ a =
     , format : Float -> String
     , showAxis : Bool
     , showGrid : Bool
-    , showLabels : Bool
-    , totalAsLabels : Bool
     }
 
 
@@ -426,8 +424,6 @@ toRenderData cfg xData =
                 , format = cfg.attrs.yAxis.format
                 , showAxis = cfg.attrs.yAxis.showAxis
                 , showGrid = cfg.attrs.yAxis.showGrid
-                , showLabels = cfg.attrs.zAxis.labelsType /= NoLabels
-                , totalAsLabels = cfg.attrs.zAxis.labelsType == TotalLabels
                 }
             , z =
                 { data = zDataList
@@ -440,8 +436,6 @@ toRenderData cfg xData =
                 , format = cfg.attrs.zAxis.format
                 , showAxis = cfg.attrs.zAxis.showAxis
                 , showGrid = cfg.attrs.zAxis.showGrid
-                , showLabels = cfg.attrs.zAxis.labelsType /= NoLabels
-                , totalAsLabels = cfg.attrs.zAxis.labelsType == TotalLabels
                 }
             }
         }
@@ -672,6 +666,7 @@ type Attribute msg
 type alias Attributes msg =
     { debug : Bool
     , labels : Bool
+    , labelsAutoHide : Bool
     , width : Float
     , ratio : Float
     , fontSize :
@@ -689,19 +684,15 @@ type alias Attributes msg =
         , right : Float
         }
     , background : String
-    , htmlAttributes : List (H.Attribute msg)
+    , id : Maybe String
+    , onMouseEnter : Maybe msg
+    , onMouseLeave : Maybe msg
     }
 
 
 type ScaleType
     = Linear
     | Logarithmic Float
-
-
-type LabelsType
-    = NoLabels
-    | TotalLabels
-    | ValueLabels
 
 
 type StackType
@@ -725,7 +716,6 @@ type alias AxisAttributes =
     , ticks : Int
     , scale : ScaleType
     , stackType : StackType
-    , labelsType : LabelsType
     , showAxis : Bool
     , showGrid : Bool
     }
@@ -767,7 +757,6 @@ defaultAxisAttributes =
     , ticks = 5
     , scale = Linear
     , stackType = NotStacked
-    , labelsType = NoLabels
     , showAxis = True
     , showGrid = True
     }
@@ -777,6 +766,7 @@ defaultAttrs : Attributes msg
 defaultAttrs =
     { debug = False
     , labels = False
+    , labelsAutoHide = True
     , width = 960
     , ratio = 0.5
     , fontSize =
@@ -794,7 +784,9 @@ defaultAttrs =
         , bottom = 64
         }
     , background = "transparent"
-    , htmlAttributes = []
+    , id = Nothing
+    , onMouseEnter = Nothing
+    , onMouseLeave = Nothing
     }
 
 
@@ -1227,6 +1219,16 @@ attrTransformOrigin cx cy =
 
 
 ---
+
+
+maybeAttr : Maybe a -> (a -> H.Attribute msg) -> H.Attribute msg
+maybeAttr m fn =
+    case m of
+        Just a ->
+            fn a
+
+        Nothing ->
+            HA.class ""
 
 
 isJust : Maybe a -> Bool

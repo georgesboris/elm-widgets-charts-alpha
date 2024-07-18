@@ -1,8 +1,8 @@
 module W.Chart.Colors exposing
-    ( mapWithColors, mapWithColorsSkipping, Palette
+    ( mapWithColors, Palette
     , mix, mixB, rainbow, cool, warm
     , amber, blue, cyan, emerald, gray, green, indigo, orange, pink, purple, red, rose, teal, violet, yellow
-    , toColors, toColorWithShades, toColorWithShadesSkipping, colorByIndex, colorByIndexSkipping
+    , toColors, toColorWithShades
     )
 
 {-| Accessible colors based on <https://www.s-ings.com/scratchpad/oklch-smooth/> .
@@ -47,99 +47,62 @@ toColors (Palette _ _ colors) =
 
 
 {-| -}
-toColorWithShades : Palette -> List String
-toColorWithShades (Palette _ _ colors) =
-    colors
-        |> Array.toList
-        |> List.concatMap
-            (\color ->
-                List.map ((|>) color) shades
-            )
+toColorWithShades : Palette -> Int -> List String
+toColorWithShades ((Palette length _ _) as palette) count =
+    List.range 0 (length * count)
+        |> mapWithColors palette (\c _ -> c)
 
 
-{-| -}
-toColorWithShadesSkipping : Palette -> List String
-toColorWithShadesSkipping ((Palette i _ _) as palette) =
-    List.range 0 ((i * shadesWithContrastCount) - 1)
-        |> List.map (colorByIndexSkipping palette)
-
-
-{-| -}
 mapWithColors : Palette -> (String -> a -> b) -> List a -> List b
-mapWithColors =
-    mapWithColorsBy colorByIndex
+mapWithColors (Palette paletteLength baseColor colors) fn xs =
+    let
+        itemsLength : Int
+        itemsLength =
+            List.length xs
 
+        ( shadeLength, shadeArray ) =
+            case (itemsLength - 1) // paletteLength of
+                0 ->
+                    ( 1, shades1 )
 
-{-| -}
-mapWithColorsSkipping : Palette -> (String -> a -> b) -> List a -> List b
-mapWithColorsSkipping =
-    mapWithColorsBy colorByIndexSkipping
+                1 ->
+                    ( 2, shades2 )
 
+                3 ->
+                    ( 3, shades3 )
 
-mapWithColorsBy : (Palette -> Int -> String) -> Palette -> (String -> a -> b) -> List a -> List b
-mapWithColorsBy toColor ((Palette length _ colors) as palette) fn xs =
-    if List.length xs > length then
+                _ ->
+                    ( 4, shades4 )
+    in
+    List.indexedMap
+        (\index x ->
+            let
+                shadeIndex : Int
+                shadeIndex =
+                    modBy shadeLength index
+
+                colorIndex : Int
+                colorIndex =
+                    modBy paletteLength (index // shadeLength)
+
+                color : Color
+                color =
+                    colors
+                        |> Array.get (modBy paletteLength colorIndex)
+                        |> Maybe.withDefault baseColor
+
+                shade : String
+                shade =
+                    case Array.get shadeIndex shadeArray of
+                        Just colorToShade ->
+                            colorToShade color
+
+                        Nothing ->
+                            baseShade baseColor
+            in
+            fn shade x
+        )
         xs
-            |> List.indexedMap
-                (\index x -> fn (toColor palette index) x)
-
-    else
-        List.map2
-            (\color x -> fn (baseShade color) x)
-            (Array.toList colors)
-            xs
-
-
-{-| Get the color string for each color in a palette.
-Always skip color, move between shades after all colors were used.
-Shades are also slightly moved in a circular fashion to achieve more contrast.
--}
-colorByIndexSkipping : Palette -> Int -> String
-colorByIndexSkipping (Palette length baseColor colors) i =
-    if length == 1 then
-        getShadeContrast i baseColor
-
-    else
-        let
-            colorIndex : Int
-            colorIndex =
-                modBy length i
-
-            color : Color
-            color =
-                colors
-                    |> Array.get colorIndex
-                    |> Maybe.withDefault baseColor
-
-            shadeIndex : Int
-            shadeIndex =
-                (i // length) + (modBy 2 colorIndex * 2)
-        in
-        getShadeContrast shadeIndex color
-
-
-{-| Get the color string for each color in a palette.
-Use all shades for a given color before moving to the next color.
-This is usually recommended since the user will be able to distinguish different shades if the colors are near each other.
--}
-colorByIndex : Palette -> Int -> String
-colorByIndex (Palette length baseColor colors) i =
-    if length == 1 then
-        getShadeContrast i baseColor
-
-    else
-        let
-            colorIndex : Int
-            colorIndex =
-                modBy length (i // shadesWithContrastCount)
-
-            color : Color
-            color =
-                colors
-                    |> Array.get (colorIndex - 1)
-                    |> Maybe.withDefault baseColor
-        in
-        getShadeContrast i color
 
 
 
@@ -559,27 +522,34 @@ baseShade =
     .l50
 
 
-shades : List (Color -> String)
-shades =
-    [ .l60
-    , .l40
-    , .l20
-    ]
+shades1 : Array.Array (Color -> String)
+shades1 =
+    Array.fromList
+        [ .l50 ]
 
 
-shadesWithContrast : Array.Array (Color -> String)
-shadesWithContrast =
-    Array.fromList shades
+shades2 : Array.Array (Color -> String)
+shades2 =
+    Array.fromList
+        [ .l60
+        , .l40
+        ]
 
 
-shadesWithContrastCount : Int
-shadesWithContrastCount =
-    Array.length shadesWithContrast
+shades3 : Array.Array (Color -> String)
+shades3 =
+    Array.fromList
+        [ .l60
+        , .l40
+        , .l20
+        ]
 
 
-getShadeContrast : Int -> Color -> String
-getShadeContrast i c =
-    shadesWithContrast
-        |> Array.get (modBy shadesWithContrastCount i)
-        |> Maybe.withDefault baseShade
-        |> (\fn -> fn c)
+shades4 : Array.Array (Color -> String)
+shades4 =
+    Array.fromList
+        [ .l70
+        , .l50
+        , .l40
+        , .l20
+        ]
