@@ -200,7 +200,6 @@ type alias HoverAttrs msg point =
 type HoverGrouping
     = GroupByX
     | GroupByXY
-    | GroupByDatum
 
 
 type alias DataAttrs x a =

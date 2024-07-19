@@ -12,7 +12,6 @@ module W.Chart exposing
     , onMouseEnterChart, onMouseLeaveChart
     , Context, Coordinates, Point, RenderDatum, AxisDataPoints
     , debug
-    , groupByDatum
     )
 
 {-|
@@ -515,12 +514,6 @@ groupByXY =
     Attr.attr (\a -> { a | grouping = W.Chart.Internal.GroupByXY })
 
 
-{-| -}
-groupByDatum : HoverAttribute msg point
-groupByDatum =
-    Attr.attr (\a -> { a | grouping = W.Chart.Internal.GroupByDatum })
-
-
 
 -- Axis
 
@@ -775,9 +768,6 @@ viewHoverAndLabels config ctx widgets =
 
                 W.Chart.Internal.GroupByXY ->
                     viewHoverNearest config hoverAttrs ctx widgets
-
-                W.Chart.Internal.GroupByDatum ->
-                    H.text ""
 
         Nothing ->
             H.text ""

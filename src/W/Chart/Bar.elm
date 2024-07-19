@@ -36,6 +36,7 @@ import W.Chart.Widget.Label
 -- Attributes
 
 
+{-| -}
 type EventTarget y z
     = YDatum y
     | ZDatum z
