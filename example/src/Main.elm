@@ -16,13 +16,15 @@ import W.Styles
 
 
 type alias Model =
-    { onClick : Maybe ( W.Chart.Coordinates, String )
+    { onClickDatum : Maybe String
+    , onClick : Maybe ( W.Chart.Coordinates, String )
     , onHover : Maybe ( W.Chart.Coordinates, String )
     }
 
 
 type Msg
     = OnClick W.Chart.Coordinates String
+    | OnClickDatum String
     | OnMouseEnter W.Chart.Coordinates String
     | OnMouseLeave
     | OnMouseLeaveChart
@@ -31,6 +33,9 @@ type Msg
 update : Msg -> Model -> Model
 update msg model =
     case msg of
+        OnClickDatum color ->
+            { model | onClickDatum = Just color }
+
         OnClick coords color ->
             { model | onClick = Just ( coords, color ) }
 
@@ -116,7 +121,7 @@ purchasesByDay day =
 main : Program () Model Msg
 main =
     Browser.sandbox
-        { init = { onClick = Nothing, onHover = Nothing }
+        { init = { onClickDatum = Nothing, onClick = Nothing, onHover = Nothing }
         , update = update
         , view =
             \model ->
@@ -124,8 +129,8 @@ main =
                     chartConfig : W.Chart.ConfigXYZ Msg Date.Date Int TrigFunction
                     chartConfig =
                         W.Chart.fromXYZ
-                            [ W.Chart.showLabels
-                            , W.Chart.onMouseLeaveChart OnMouseLeaveChart
+                            [ -- W.Chart.showLabels
+                             W.Chart.onMouseLeaveChart OnMouseLeaveChart
                             ]
                             { x =
                                 W.Chart.xAxis
@@ -147,32 +152,40 @@ main =
                                     }
                             , z =
                                 W.Chart.axisList
-                                    [ W.Chart.axisLabel "Z Axis" ]
+                                    [ W.Chart.axisLabel "Z Axis", W.Chart.stacked ]
                                     { data = [ Cos ]
                                     , toLabel = trigFnLabel
                                     , toColor = trigFnColor
-                                    , toValue = \fn x -> Just (applyTrigFn fn (toFloat (Date.toRataDie x)))
+                                    , toValue = \fn x -> Just ((applyTrigFn fn (toFloat (Date.toRataDie x))))
                                     }
                             }
                             |> W.Chart.withActive (Maybe.map Tuple.first model.onClick)
-                            |> W.Chart.withHover
-                                [ W.Chart.onClick (\c a -> OnClick c (toColor a))
-                                , W.Chart.onMouseEnter (\c a -> OnMouseEnter c (toColor a))
-                                , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
-                                ]
+                            -- |> W.Chart.withHover
+                            --     [ W.Chart.onMouseEnter (\c a -> OnMouseEnter c (toColor a))
+                            --     , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
+                            --     ]
                 in
                 viewWrapper model
                     [ chartConfig
                         |> W.Chart.view
-                            [ W.Chart.Bar.fromYZ [ W.Chart.Bar.labelsOutside, W.Chart.Bar.labelsAsPercentages ]
+                            [ W.Chart.Bar.fromY
+                                [ W.Chart.Bar.labelsOutside
+                                , W.Chart.Bar.labelsAsPercentages
+                                , W.Chart.Bar.onClick (\a -> OnClickDatum (W.Chart.Colors.colorByIndex W.Chart.Colors.rainbow a))
+                                ]
+                            -- , W.Chart.Line.fromY [ W.Chart.Line.labelsAsPercentages ]
                             , W.Chart.Tooltip.fromYZ []
                             ]
                     , chartConfig
                         |> W.Chart.view
-                            [ W.Chart.Line.fromY [ W.Chart.Line.areaAlways ]
+                            [ W.Chart.Line.fromZ
+                                [ W.Chart.Line.areaAlways
+                                , W.Chart.Line.onMouseEnter (\_ -> OnClickDatum "pink")
+                                , W.Chart.Line.onMouseLeave (\_ -> OnClickDatum "blue")
+                                ]
 
                             -- , W.Chart.Line.fromZ []
-                            , W.Chart.Tooltip.fromY
+                            , W.Chart.Tooltip.fromYZ
                                 [ W.Chart.Tooltip.yAxisLabel [ H.text "YYY" ]
                                 , W.Chart.Tooltip.headerValue
                                     (\ctx yList ->
@@ -300,8 +313,9 @@ viewWrapper model children =
         , Theme.globalProvider Theme.darkTheme
         , W.Chart.globalStyles
         , globalStyles
-        , viewColor ( 20, 20 ) model.onClick
-        , viewColor ( 80, 20 ) model.onHover
+        , viewColor ( 20, 20 ) (Maybe.map Tuple.second model.onClick)
+        , viewColor ( 80, 20 ) (Maybe.map Tuple.second model.onHover)
+        , viewColor ( 140, 20 ) model.onClickDatum
         , children
             |> List.map
                 (\c ->
@@ -335,11 +349,11 @@ globalStyles =
         ]
 
 
-viewColor : ( Float, Float ) -> Maybe ( W.Chart.Coordinates, String ) -> H.Html msg
+viewColor : ( Float, Float ) -> Maybe String -> H.Html msg
 viewColor ( top, right ) maybeColor =
     maybeColor
         |> Maybe.map
-            (\( _, color ) ->
+            (\color ->
                 H.div
                     [ HA.style "width" "40px"
                     , HA.style "height" "40px"

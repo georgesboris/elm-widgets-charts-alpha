@@ -1,6 +1,7 @@
 module W.Chart.Tooltip exposing
     ( fromY, fromZ, fromYZ
     , formatByX, headerValue, yAxisLabel, zAxisLabel, axisValue, Attribute
+    , viewCustom
     )
 
 {-|
@@ -8,6 +9,8 @@ module W.Chart.Tooltip exposing
 @docs fromY, fromZ, fromYZ
 
 @docs formatByX, headerValue, yAxisLabel, zAxisLabel, axisValue, Attribute
+
+@docs viewCustom
 
 -}
 
@@ -187,6 +190,23 @@ zAxisLabel v =
 
 
 -- View
+
+
+viewCustom :
+    { x : Float
+    , y : Float
+    , content : List (H.Html msg)
+    }
+    -> H.Html msg
+viewCustom props =
+    Svg.foreignObject
+        [ SA.class [ "ew-charts--tooltip-wrapper" ]
+        , SAP.x props.x
+        , SAP.y props.y
+        ]
+        [ H.div [ HA.attribute "xlmns" "http://www.w3.org/1999/xhtml" ]
+            props.content
+        ]
 
 
 viewX :

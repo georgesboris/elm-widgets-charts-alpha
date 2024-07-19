@@ -12,6 +12,7 @@ module W.Chart exposing
     , onMouseEnterChart, onMouseLeaveChart
     , Context, Coordinates, Point, RenderDatum, AxisDataPoints
     , debug
+    , groupByDatum
     )
 
 {-|
@@ -484,13 +485,7 @@ withActive v (W.Chart.Internal.Config cfg) =
 {-| -}
 withHover : List (HoverAttribute msg point) -> Config msg x y z point -> Config msg x y z point
 withHover =
-    Attr.withAttrs
-        { nearest = False
-        , onClick = Nothing
-        , onMouseEnter = Nothing
-        , onMouseLeave = Nothing
-        , custom = []
-        }
+    Attr.withAttrs W.Chart.Internal.defaultHoverAttrs
         (\tooltipAttrs (W.Chart.Internal.Config cfg) ->
             W.Chart.Internal.Config { cfg | hover = Just tooltipAttrs }
         )
@@ -517,7 +512,13 @@ onMouseLeave fn =
 {-| -}
 groupByXY : HoverAttribute msg point
 groupByXY =
-    Attr.attr (\a -> { a | nearest = True })
+    Attr.attr (\a -> { a | grouping = W.Chart.Internal.GroupByXY })
+
+
+{-| -}
+groupByDatum : HoverAttribute msg point
+groupByDatum =
+    Attr.attr (\a -> { a | grouping = W.Chart.Internal.GroupByDatum })
 
 
 
@@ -768,11 +769,15 @@ viewHoverAndLabels :
 viewHoverAndLabels config ctx widgets =
     case config.hover of
         Just hoverAttrs ->
-            if hoverAttrs.nearest then
-                viewHoverNearest config hoverAttrs ctx widgets
+            case hoverAttrs.grouping of
+                W.Chart.Internal.GroupByX ->
+                    viewHoverX config hoverAttrs ctx widgets
 
-            else
-                viewHoverX config hoverAttrs ctx widgets
+                W.Chart.Internal.GroupByXY ->
+                    viewHoverNearest config hoverAttrs ctx widgets
+
+                W.Chart.Internal.GroupByDatum ->
+                    H.text ""
 
         Nothing ->
             H.text ""
@@ -1031,55 +1036,25 @@ viewXGrid ctx =
 viewXAxis : Context x y z -> SC.Svg msg
 viewXAxis ctx =
     if ctx.x.showAxis then
-        S.g []
-            [ S.line
-                [ SAP.x1 0
-                , SAP.x2 ctx.width
-                , SAP.y1 0
-                , SAP.y2 0
-                , SAP.strokeWidth 1
-                , Svg.Attributes.stroke (Theme.baseAuxWithAlpha 0.1)
-                ]
-                []
-            , W.Chart.Internal.viewTranslate
-                { x = 0
-                , y = ctx.height
-                }
-                [ S.line
-                    [ SAP.x1 0
-                    , SAP.x2 ctx.width
-                    , SAP.y1 0
-                    , SAP.y2 0
-                    , SAP.strokeWidth 1
-                    , Svg.Attributes.stroke (Theme.baseAuxWithAlpha 0.2)
-                    ]
-                    []
-                , ctx.points.byX
-                    |> Dict.values
-                    |> W.Chart.Internal.Tick.toTicks ctx.x.ticks
-                    |> List.concatMap
-                        (\xData ->
-                            [ S.line
-                                [ SAP.x1 xData.x.render.valueScaled
-                                , SAP.x2 xData.x.render.valueScaled
-                                , SAP.y1 0
-                                , SAP.y2 6
-                                , SAP.strokeWidth 1
-                                , Svg.Attributes.stroke (Theme.baseAuxWithAlpha 0.2)
-                                ]
-                                []
-                            , S.text_
-                                [ SA.textAnchor ST.AnchorMiddle
-                                , SAP.y (ctx.fontSize.sm * 2)
-                                , SAP.x xData.x.render.valueScaled
-                                , Svg.Attributes.fill (Theme.baseForegroundWithAlpha 0.6)
-                                , SAP.fontSize ctx.fontSize.sm
-                                ]
-                                [ SC.text xData.x.render.label ]
+        W.Chart.Internal.viewTranslate
+            { x = 0
+            , y = ctx.height
+            }
+            [ ctx.points.byX
+                |> Dict.values
+                |> W.Chart.Internal.Tick.toTicks ctx.x.ticks
+                |> List.map
+                    (\xData ->
+                        S.text_
+                            [ SA.textAnchor ST.AnchorMiddle
+                            , SAP.y (ctx.fontSize.sm * 2)
+                            , SAP.x xData.x.render.valueScaled
+                            , Svg.Attributes.fill (Theme.baseForegroundWithAlpha 0.6)
+                            , SAP.fontSize ctx.fontSize.sm
                             ]
-                        )
-                    |> S.g []
-                ]
+                            [ SC.text xData.x.render.label ]
+                    )
+                |> S.g []
             ]
 
     else
@@ -1112,6 +1087,15 @@ viewYAxis (W.Chart.Internal.RenderData d) =
                         , format = axisFormat
                         }
                     ]
+                , S.line
+                    [ SA.x1 (ST.px 0)
+                    , SA.x2 (ST.px d.spacings.chart.width)
+                    , SA.y1 (ST.px d.ctx.y.zero)
+                    , SA.y2 (ST.px d.ctx.y.zero)
+                    , SA.strokeWidth (ST.px 1.0)
+                    , Svg.Attributes.stroke (Theme.baseAuxWithAlpha 0.3)
+                    ]
+                    []
                 ]
 
         _ ->
@@ -1410,6 +1394,7 @@ globalStyles =
             }
 
             /*
+
             .ew-charts--y-axis path.domain,
             .ew-charts--y-axis .tick line {
                 display: none;

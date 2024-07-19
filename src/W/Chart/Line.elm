@@ -2,6 +2,7 @@ module W.Chart.Line exposing
     ( fromY, fromZ
     , smooth, dashed, areaAlways, lineAlways
     , labelFormat, labelFormatWithList, labelsAsPercentages
+    , onClick, onMouseEnter, onMouseLeave
     , Attribute
     )
 
@@ -11,6 +12,7 @@ module W.Chart.Line exposing
 
 @docs smooth, dashed, areaAlways, lineAlways
 @docs labelFormat, labelFormatWithList, labelsAsPercentages
+@docs onClick, onMouseEnter, onMouseLeave
 @docs Attribute
 
 -}
@@ -21,9 +23,12 @@ import Path
 import Shape
 import SubPath
 import Svg.Attributes
+import Svg.Events as SE
 import TypedSvg as S
 import TypedSvg.Attributes as SA
+import TypedSvg.Attributes.InPx as SAP
 import TypedSvg.Core as SC
+import TypedSvg.Types as ST
 import W.Chart
 import W.Chart.Internal
 import W.Chart.Widget
@@ -32,7 +37,7 @@ import W.Svg.Circle
 
 
 {-| -}
-fromY : List Attribute -> W.Chart.WidgetXY msg x y z a
+fromY : List (Attribute y msg) -> W.Chart.WidgetXY msg x y z a
 fromY =
     Attr.withAttrs defaultAttrs
         (\attrs ->
@@ -55,7 +60,7 @@ fromY =
 
 
 {-| -}
-fromZ : List Attribute -> W.Chart.WidgetXYZ msg x y z a
+fromZ : List (Attribute z msg) -> W.Chart.WidgetXYZ msg x y z a
 fromZ =
     Attr.withAttrs defaultAttrs
         (\attrs ->
@@ -82,67 +87,91 @@ fromZ =
 
 
 {-| -}
-type alias Attribute =
-    Attr.Attr Attributes
+type alias Attribute a msg =
+    Attr.Attr (Attributes a msg)
 
 
-type alias Attributes =
+type alias Attributes a msg =
     { smooth : Bool
     , dashed : Bool
     , area : Maybe Bool
     , labelFormat : W.Chart.Widget.Label.Attribute
+    , onClick : Maybe (a -> msg)
+    , onMouseEnter : Maybe (a -> msg)
+    , onMouseLeave : Maybe (a -> msg)
     }
 
 
-defaultAttrs : Attributes
+defaultAttrs : Attributes a msg
 defaultAttrs =
     { smooth = False
     , dashed = False
     , area = Nothing
     , labelFormat = Attr.none
+    , onClick = Nothing
+    , onMouseEnter = Nothing
+    , onMouseLeave = Nothing
     }
 
 
 {-| -}
-smooth : Attribute
+smooth : Attribute a msg
 smooth =
     Attr.attr (\attr -> { attr | smooth = True })
 
 
 {-| -}
-dashed : Attribute
+dashed : Attribute a msg
 dashed =
     Attr.attr (\attr -> { attr | dashed = True })
 
 
 {-| -}
-lineAlways : Attribute
+lineAlways : Attribute a msg
 lineAlways =
     Attr.attr (\attr -> { attr | area = Just False })
 
 
 {-| -}
-areaAlways : Attribute
+areaAlways : Attribute a msg
 areaAlways =
     Attr.attr (\attr -> { attr | area = Just True })
 
 
 {-| -}
-labelFormat : (Float -> String) -> Attribute
+labelFormat : (Float -> String) -> Attribute a msg
 labelFormat fn =
     Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.format fn })
 
 
 {-| -}
-labelFormatWithList : (List Float -> Float -> String) -> Attribute
+labelFormatWithList : (List Float -> Float -> String) -> Attribute a msg
 labelFormatWithList fn =
     Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.formatWithList fn })
 
 
 {-| -}
-labelsAsPercentages : Attribute
+labelsAsPercentages : Attribute a msg
 labelsAsPercentages =
     Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.formatAsPercentage })
+
+
+{-| -}
+onClick : (a -> msg) -> Attribute a msg
+onClick fn =
+    Attr.attr (\attr -> { attr | onClick = Just fn })
+
+
+{-| -}
+onMouseEnter : (a -> msg) -> Attribute a msg
+onMouseEnter fn =
+    Attr.attr (\attr -> { attr | onMouseEnter = Just fn })
+
+
+{-| -}
+onMouseLeave : (a -> msg) -> Attribute a msg
+onMouseLeave fn =
+    Attr.attr (\attr -> { attr | onMouseLeave = Just fn })
 
 
 
@@ -172,10 +201,10 @@ viewHover x ys =
         |> S.g []
 
 
-viewLines : Attributes -> W.Chart.Internal.RenderAxisYZ a -> List ( W.Chart.Internal.ChartDatum a, List ( W.Chart.Internal.DataPoint x, W.Chart.Internal.DataPoint a ) ) -> SC.Svg msg
+viewLines : Attributes a msg -> W.Chart.Internal.RenderAxisYZ a -> List ( W.Chart.Internal.ChartDatum a, List ( W.Chart.Internal.DataPoint x, W.Chart.Internal.DataPoint a ) ) -> SC.Svg msg
 viewLines attrs axis axisPoints =
     let
-        viewLine_ : Attributes -> Int -> ( W.Chart.Internal.ChartDatum a, List ( W.Chart.Internal.DataPoint x, W.Chart.Internal.DataPoint a ) ) -> SC.Svg msg
+        viewLine_ : Attributes a msg -> Int -> ( W.Chart.Internal.ChartDatum a, List ( W.Chart.Internal.DataPoint x, W.Chart.Internal.DataPoint a ) ) -> SC.Svg msg
         viewLine_ =
             case attrs.area of
                 Just True ->
@@ -194,7 +223,7 @@ viewLines attrs axis axisPoints =
     S.g [] (List.indexedMap (viewLine_ attrs) axisPoints)
 
 
-viewLineWithArea : Attributes -> Int -> ( W.Chart.Internal.ChartDatum a, List ( W.Chart.Internal.DataPoint x, W.Chart.Internal.DataPoint a ) ) -> SC.Svg msg
+viewLineWithArea : Attributes a msg -> Int -> ( W.Chart.Internal.ChartDatum a, List ( W.Chart.Internal.DataPoint x, W.Chart.Internal.DataPoint a ) ) -> SC.Svg msg
 viewLineWithArea attrs index ( chartDatum, points ) =
     let
         areaPoints : List (Maybe ( ( Float, Float ), ( Float, Float ) ))
@@ -214,16 +243,50 @@ viewLineWithArea attrs index ( chartDatum, points ) =
 
         linePoints : List (Maybe ( Float, Float ))
         linePoints =
-            List.map (Maybe.map Tuple.first) areaPoints
+            points
+                |> List.map
+                    (\( x, y ) ->
+                        Just
+                            ( x.render.valueScaled
+                            , y.render.valueScaled
+                            )
+                    )
+
+        gradientId : String
+        gradientId =
+            chartDatum.color
+                |> String.replace "." "_"
+                |> String.replace "," "_"
+                |> String.replace "(" "_"
+                |> String.replace ")" "_"
+                |> String.replace "#" "_"
+                |> (++) "ew-charts--g-"
     in
     S.g
         []
-        [ Path.element
+        [ S.defs
+            []
+            [ S.linearGradient
+                [ SA.id gradientId, SAP.x1 0, SAP.x2 0, SAP.y1 0, SAP.y2 1 ]
+                [ S.stop [ SA.stopColor chartDatum.color, SA.offset "0%", SA.stopOpacity (ST.Opacity 0.3) ] []
+                , S.stop [ SA.stopColor chartDatum.color, SA.offset "50%", SA.stopOpacity (ST.Opacity 0.2) ] []
+                , S.stop [ SA.stopColor chartDatum.color, SA.offset "100%", SA.stopOpacity (ST.Opacity 0.0) ] []
+                ]
+            ]
+        , Path.element
             (Shape.area (shape attrs) areaPoints)
             [ Svg.Attributes.class "ew-charts--animate-fade"
             , Svg.Attributes.style ("animation-delay:" ++ String.fromInt (index * 400))
-            , Svg.Attributes.fill chartDatum.color
-            , Svg.Attributes.fillOpacity "0.2"
+            , Svg.Attributes.fill ("url(#" ++ gradientId ++ ")")
+            , attrs.onClick
+                |> Maybe.map (\fn -> SE.onClick (fn chartDatum.datum))
+                |> Maybe.withDefault (Svg.Attributes.class "")
+            , attrs.onMouseEnter
+                |> Maybe.map (\fn -> SE.onMouseOver (fn chartDatum.datum))
+                |> Maybe.withDefault (Svg.Attributes.class "")
+            , attrs.onMouseLeave
+                |> Maybe.map (\fn -> SE.onMouseOut (fn chartDatum.datum))
+                |> Maybe.withDefault (Svg.Attributes.class "")
             ]
         , Path.element
             (Shape.line (shape attrs) linePoints)
@@ -237,11 +300,20 @@ viewLineWithArea attrs index ( chartDatum, points ) =
 
               else
                 Svg.Attributes.class ""
+            , attrs.onClick
+                |> Maybe.map (\fn -> SE.onClick (fn chartDatum.datum))
+                |> Maybe.withDefault (Svg.Attributes.class "")
+            , attrs.onMouseEnter
+                |> Maybe.map (\fn -> SE.onMouseOver (fn chartDatum.datum))
+                |> Maybe.withDefault (Svg.Attributes.class "")
+            , attrs.onMouseLeave
+                |> Maybe.map (\fn -> SE.onMouseOut (fn chartDatum.datum))
+                |> Maybe.withDefault (Svg.Attributes.class "")
             ]
         ]
 
 
-viewLine : Attributes -> Int -> ( W.Chart.Internal.ChartDatum a, List ( W.Chart.Internal.DataPoint x, W.Chart.Internal.DataPoint a ) ) -> SC.Svg msg
+viewLine : Attributes a msg -> Int -> ( W.Chart.Internal.ChartDatum a, List ( W.Chart.Internal.DataPoint x, W.Chart.Internal.DataPoint a ) ) -> SC.Svg msg
 viewLine attrs index ( chartDatum, points ) =
     let
         linePoints : List (Maybe ( Float, Float ))
@@ -270,7 +342,7 @@ viewLine attrs index ( chartDatum, points ) =
         ]
 
 
-shape : Attributes -> List ( Float, Float ) -> SubPath.SubPath
+shape : Attributes a msg -> List ( Float, Float ) -> SubPath.SubPath
 shape attrs =
     if attrs.smooth then
         Shape.monotoneInXCurve

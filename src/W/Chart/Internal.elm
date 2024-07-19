@@ -16,6 +16,7 @@ module W.Chart.Internal exposing
     , DataAttrs
     , DataPoint
     , HoverAttrs
+    , HoverGrouping(..)
     , Padding
     , RenderAxisX
     , RenderAxisYZ
@@ -38,6 +39,7 @@ module W.Chart.Internal exposing
     , dataFromCoords
     , defaultAttrs
     , defaultAxisAttributes
+    , defaultHoverAttrs
     , formatFloat
     , formatPct
     , isJust
@@ -176,13 +178,29 @@ type alias Coordinates =
     { x : Float, y : Maybe Float }
 
 
+defaultHoverAttrs : HoverAttrs msg point
+defaultHoverAttrs =
+    { grouping = GroupByX
+    , onClick = Nothing
+    , onMouseEnter = Nothing
+    , onMouseLeave = Nothing
+    , custom = []
+    }
+
+
 type alias HoverAttrs msg point =
-    { nearest : Bool
+    { grouping : HoverGrouping
     , onClick : Maybe (Coordinates -> point -> msg)
     , onMouseEnter : Maybe (Coordinates -> point -> msg)
     , onMouseLeave : Maybe (Coordinates -> point -> msg)
     , custom : List (H.Html msg)
     }
+
+
+type HoverGrouping
+    = GroupByX
+    | GroupByXY
+    | GroupByDatum
 
 
 type alias DataAttrs x a =
@@ -314,8 +332,8 @@ toRenderData cfg xData =
             , scale = Scale.toRenderable xData.toLabel bandScale
             }
 
-        yBefore : Maybe (RenderDataYZ x y)
-        yBefore =
+        yBeforeNormalization : Maybe (RenderDataYZ x y)
+        yBeforeNormalization =
             cfg.yData
                 |> Maybe.map
                     (\yData_ ->
@@ -327,8 +345,8 @@ toRenderData cfg xData =
                             }
                     )
 
-        zBefore : Maybe (RenderDataYZ x z)
-        zBefore =
+        zBeforeNormalization : Maybe (RenderDataYZ x z)
+        zBeforeNormalization =
             cfg.zData
                 |> Maybe.map
                     (\zData_ ->
@@ -343,7 +361,7 @@ toRenderData cfg xData =
         -- If both X and Z are defined
         -- we normalize them so their 0.0 match.
         ( yScale, zScale ) =
-            case ( ( yBefore, cfg.attrs.yAxis.scale ), ( zBefore, cfg.attrs.zAxis.scale ) ) of
+            case ( ( yBeforeNormalization, cfg.attrs.yAxis.scale ), ( zBeforeNormalization, cfg.attrs.zAxis.scale ) ) of
                 ( ( Just y, Linear ), ( Just z, Linear ) ) ->
                     W.Chart.Internal.Scale.normalizeDomains
                         (Scale.domain y.scale)
@@ -353,23 +371,21 @@ toRenderData cfg xData =
                             (toScale spacings cfg.attrs.zAxis)
 
                 _ ->
-                    ( yBefore
+                    ( yBeforeNormalization
                         |> Maybe.map (\y -> toScale spacings cfg.attrs.yAxis (Scale.domain y.scale))
                         |> Maybe.withDefault dummyScale
-                    , zBefore
+                    , zBeforeNormalization
                         |> Maybe.map (\z -> toScale spacings cfg.attrs.zAxis (Scale.domain z.scale))
                         |> Maybe.withDefault dummyScale
                     )
 
         yData : Maybe (RenderDataYZ x y)
         yData =
-            yBefore
-                |> Maybe.map (scaleStackedData yScale)
+            Maybe.map (scaleStackedData yScale) yBeforeNormalization
 
         zData : Maybe (RenderDataYZ x z)
         zData =
-            zBefore
-                |> Maybe.map (scaleStackedData zScale)
+            Maybe.map (scaleStackedData zScale) zBeforeNormalization
 
         yDataList : List y
         yDataList =
@@ -851,16 +867,28 @@ scaleStackedData scale yz =
                                                 render =
                                                     point.render
 
+                                                startScaled : Float
+                                                startScaled =
+                                                    Scale.convert scale render.valueStart
+
+                                                endScaled : Float
+                                                endScaled =
+                                                    Scale.convert scale render.valueEnd
+
                                                 valueScaled : Float
                                                 valueScaled =
-                                                    Scale.convert scale render.valueStart
+                                                    if render.valueStart > 0.0 then
+                                                        startScaled
+
+                                                    else
+                                                        endScaled
                                             in
                                             { point
                                                 | render =
                                                     { render
                                                         | valueScaled = valueScaled
-                                                        , valueStart = valueScaled
-                                                        , valueEnd = Scale.convert scale render.valueEnd
+                                                        , valueStart = startScaled
+                                                        , valueEnd = endScaled
                                                     }
                                             }
                                         )
@@ -944,7 +972,7 @@ toStackedData props =
                     }
                 , values =
                     List.map3
-                        (\x v ( low, high ) ->
+                        (\x v ( end, start ) ->
                             { datum =
                                 { datum = a.datum
                                 , color = a.color
@@ -955,9 +983,9 @@ toStackedData props =
                                 , label = a.label
                                 , value = v
                                 , valueString = props.axisConfig.format v
-                                , valueScaled = high
-                                , valueStart = high
-                                , valueEnd = low
+                                , valueScaled = v
+                                , valueStart = start
+                                , valueEnd = end
                                 , isDefault = props.axisData.toValue a.datum x == Nothing
                                 }
                             }

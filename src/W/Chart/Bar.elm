@@ -2,6 +2,7 @@ module W.Chart.Bar exposing
     ( fromY, fromZ, fromYZ
     , margins
     , labelFormat, labelFormatWithList, labelsAsPercentages, labelsOutside
+    , onClick, onMouseEnter, onMouseLeave, EventTarget(..)
     , Attribute
     )
 
@@ -11,6 +12,7 @@ module W.Chart.Bar exposing
 
 @docs margins
 @docs labelFormat, labelFormatWithList, labelsAsPercentages, labelsOutside
+@docs onClick, onMouseEnter, onMouseLeave, EventTarget
 @docs Attribute
 
 -}
@@ -20,6 +22,7 @@ import Dict
 import Scale
 import Svg
 import Svg.Attributes
+import Svg.Events as SE
 import TypedSvg as S
 import TypedSvg.Attributes.InPx as SAP
 import TypedSvg.Core as SC
@@ -33,56 +36,85 @@ import W.Chart.Widget.Label
 -- Attributes
 
 
+type EventTarget y z
+    = YDatum y
+    | ZDatum z
+
+
 {-| -}
-type alias Attribute =
-    Attr.Attr Attributes
+type alias Attribute a msg =
+    Attr.Attr (Attributes a msg)
 
 
-type alias Attributes =
+type alias Attributes a msg =
     { outerMargin : Float
     , innerMargin : Float
     , labelPosition : W.Chart.Widget.Label.Attribute
     , labelFormat : W.Chart.Widget.Label.Attribute
+    , onClick : Maybe (a -> msg)
+    , onMouseEnter : Maybe (a -> msg)
+    , onMouseLeave : Maybe (a -> msg)
     }
 
 
-defaultAttrs : Attributes
+defaultAttrs : Attributes a msg
 defaultAttrs =
     { innerMargin = 0.2
     , outerMargin = 0.5
     , labelPosition = W.Chart.Widget.Label.inside
     , labelFormat = Attr.none
+    , onClick = Nothing
+    , onMouseEnter = Nothing
+    , onMouseLeave = Nothing
     }
 
 
 {-| -}
-margins : Float -> Float -> Attribute
+margins : Float -> Float -> Attribute a msg
 margins innerMargin outerMargin =
     Attr.attr (\attr -> { attr | innerMargin = innerMargin, outerMargin = outerMargin })
 
 
 {-| -}
-labelsOutside : Attribute
+labelsOutside : Attribute a msg
 labelsOutside =
     Attr.attr (\attr -> { attr | labelPosition = Attr.none })
 
 
 {-| -}
-labelFormat : (Float -> String) -> Attribute
+labelFormat : (Float -> String) -> Attribute a msg
 labelFormat fn =
     Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.format fn })
 
 
 {-| -}
-labelFormatWithList : (List Float -> Float -> String) -> Attribute
+labelFormatWithList : (List Float -> Float -> String) -> Attribute a msg
 labelFormatWithList fn =
     Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.formatWithList fn })
 
 
 {-| -}
-labelsAsPercentages : Attribute
+labelsAsPercentages : Attribute a msg
 labelsAsPercentages =
     Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.formatAsPercentage })
+
+
+{-| -}
+onClick : (a -> msg) -> Attribute a msg
+onClick fn =
+    Attr.attr (\attr -> { attr | onClick = Just fn })
+
+
+{-| -}
+onMouseEnter : (a -> msg) -> Attribute a msg
+onMouseEnter fn =
+    Attr.attr (\attr -> { attr | onMouseEnter = Just fn })
+
+
+{-| -}
+onMouseLeave : (a -> msg) -> Attribute a msg
+onMouseLeave fn =
+    Attr.attr (\attr -> { attr | onMouseLeave = Just fn })
 
 
 
@@ -90,7 +122,7 @@ labelsAsPercentages =
 
 
 {-| -}
-fromY : List Attribute -> W.Chart.WidgetXY msg x y z a
+fromY : List (Attribute y msg) -> W.Chart.WidgetXY msg x y z a
 fromY =
     Attr.withAttrs defaultAttrs
         (\attrs ->
@@ -99,8 +131,10 @@ fromY =
                     viewBars
                         ctx
                         ctx.y
+                        attrs
                         (toBinScale attrs ctx (binCount ctx.y))
                         (toIndexed ctx.y 0 ctx.points.y)
+                        identity
                 )
                 |> W.Chart.Widget.withLabels
                     (\ctx ->
@@ -144,7 +178,7 @@ fromY =
 
 
 {-| -}
-fromZ : List Attribute -> W.Chart.WidgetXYZ msg x y z a
+fromZ : List (Attribute z msg) -> W.Chart.WidgetXYZ msg x y z a
 fromZ =
     Attr.withAttrs defaultAttrs
         (\attrs ->
@@ -153,8 +187,10 @@ fromZ =
                     viewBars
                         ctx
                         ctx.z
+                        attrs
                         (toBinScale attrs ctx (binCount ctx.z))
                         (toIndexed ctx.z 0 ctx.points.z)
+                        identity
                 )
                 |> W.Chart.Widget.withLabels
                     (\ctx ->
@@ -197,7 +233,7 @@ fromZ =
 
 
 {-| -}
-fromYZ : List Attribute -> W.Chart.WidgetXYZ msg x y z a
+fromYZ : List (Attribute (EventTarget y z) msg) -> W.Chart.WidgetXYZ msg x y z a
 fromYZ =
     Attr.withAttrs defaultAttrs
         (\attrs ->
@@ -217,8 +253,8 @@ fromYZ =
                             toBinScale attrs ctx (yCount + zCount)
                     in
                     S.g []
-                        [ viewBars ctx ctx.y binScale (toIndexed ctx.y 0 ctx.points.y)
-                        , viewBars ctx ctx.z binScale (toIndexed ctx.z yCount ctx.points.z)
+                        [ viewBars ctx ctx.y attrs binScale (toIndexed ctx.y 0 ctx.points.y) YDatum
+                        , viewBars ctx ctx.z attrs binScale (toIndexed ctx.z yCount ctx.points.z) ZDatum
                         ]
                 )
                 |> W.Chart.Widget.withLabels
@@ -326,8 +362,8 @@ viewHover axis binScale xPoint yzPoints =
         |> S.g []
 
 
-viewBars : W.Chart.Context x y z -> W.Chart.Internal.RenderAxisYZ a -> Scale.BandScale Int -> List ( Int, W.Chart.Internal.AxisDataPoints x a ) -> SC.Svg msg
-viewBars ctx axis binScale indexedAxes =
+viewBars : W.Chart.Context x y z -> W.Chart.Internal.RenderAxisYZ a -> Attributes eventTarget msg -> Scale.BandScale Int -> List ( Int, W.Chart.Internal.AxisDataPoints x a ) -> (a -> eventTarget) -> SC.Svg msg
+viewBars ctx axis attrs binScale indexedAxes toEventTarget =
     indexedAxes
         |> List.concatMap
             (\( index, ( axisDatum, points ) ) ->
@@ -342,6 +378,10 @@ viewBars ctx axis binScale indexedAxes =
                                 x : Float
                                 x =
                                     xPoint.render.valueStart + Scale.convert binScale index
+
+                                eventTarget : eventTarget
+                                eventTarget =
+                                    toEventTarget yzPoint.datum.datum
                             in
                             if height > 0.0 then
                                 Just
@@ -350,7 +390,17 @@ viewBars ctx axis binScale indexedAxes =
                                         , W.Chart.Internal.attrTransformOrigin x axis.zero
                                         , Svg.Attributes.class "ew-charts--animate-scale-z"
                                         ]
-                                        [ viewBar []
+                                        [ viewBar
+                                            [ attrs.onClick
+                                                |> Maybe.map (\fn -> SE.onClick (fn eventTarget))
+                                                |> Maybe.withDefault (Svg.Attributes.class "")
+                                            , attrs.onMouseEnter
+                                                |> Maybe.map (\fn -> SE.onMouseOver (fn eventTarget))
+                                                |> Maybe.withDefault (Svg.Attributes.class "")
+                                            , attrs.onMouseLeave
+                                                |> Maybe.map (\fn -> SE.onMouseOut (fn eventTarget))
+                                                |> Maybe.withDefault (Svg.Attributes.class "")
+                                            ]
                                             { color = axisDatum.color
                                             , x = x
                                             , y = yzPoint.render.valueStart
@@ -424,7 +474,7 @@ toIndexed =
     toIndexedMap identity
 
 
-toBinScale : Attributes -> W.Chart.Context x y z -> Int -> Scale.BandScale Int
+toBinScale : Attributes a msg -> W.Chart.Context x y z -> Int -> Scale.BandScale Int
 toBinScale attrs ctx count =
     Scale.band
         { paddingInner = attrs.innerMargin
