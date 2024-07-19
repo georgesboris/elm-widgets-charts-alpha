@@ -710,7 +710,11 @@ view widgets (W.Chart.Internal.Config cfg) =
                             , viewWidgets "bg" .background renderData widgets
                             , viewWidgets "main" .main renderData widgets
                             , viewWidgets "fg" .foreground renderData widgets
-                            , viewWidgets "labels" .labels renderData widgets
+                            , if d.attrs.labels then
+                                viewWidgets "labels" .labels renderData widgets
+
+                              else
+                                H.text ""
                             , viewActive cfg d.ctx widgets
                             , viewHoverAndLabels cfg d.ctx widgets
                             ]
