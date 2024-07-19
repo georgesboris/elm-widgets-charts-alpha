@@ -23,9 +23,7 @@ import SubPath
 import Svg.Attributes
 import TypedSvg as S
 import TypedSvg.Attributes as SA
-import TypedSvg.Attributes.InPx as SAP
 import TypedSvg.Core as SC
-import TypedSvg.Types as ST
 import W.Chart
 import W.Chart.Internal
 import W.Chart.Widget
@@ -181,14 +179,14 @@ viewLines attrs axis axisPoints =
         viewLine_ =
             case attrs.area of
                 Just True ->
-                    viewLineWithArea axis
+                    viewLineWithArea
 
                 Just False ->
                     viewLine
 
                 Nothing ->
                     if axis.isStacked || (List.length axis.data == 1) then
-                        viewLineWithArea axis
+                        viewLineWithArea
 
                     else
                         viewLine
@@ -196,8 +194,8 @@ viewLines attrs axis axisPoints =
     S.g [] (List.indexedMap (viewLine_ attrs) axisPoints)
 
 
-viewLineWithArea : W.Chart.Internal.RenderAxisYZ a -> Attributes -> Int -> ( W.Chart.Internal.ChartDatum a, List ( W.Chart.Internal.DataPoint x, W.Chart.Internal.DataPoint a ) ) -> SC.Svg msg
-viewLineWithArea _ attrs index ( chartDatum, points ) =
+viewLineWithArea : Attributes -> Int -> ( W.Chart.Internal.ChartDatum a, List ( W.Chart.Internal.DataPoint x, W.Chart.Internal.DataPoint a ) ) -> SC.Svg msg
+viewLineWithArea attrs index ( chartDatum, points ) =
     let
         areaPoints : List (Maybe ( ( Float, Float ), ( Float, Float ) ))
         areaPoints =
@@ -217,33 +215,15 @@ viewLineWithArea _ attrs index ( chartDatum, points ) =
         linePoints : List (Maybe ( Float, Float ))
         linePoints =
             List.map (Maybe.map Tuple.first) areaPoints
-
-        gradientId : String
-        gradientId =
-            chartDatum.color
-                |> String.replace "." "_"
-                |> String.replace "," "_"
-                |> String.replace "(" "_"
-                |> String.replace ")" "_"
-                |> String.replace "#" "_"
-                |> (++) "ew-charts--g-"
     in
     S.g
         []
-        [ S.defs
-            []
-            [ S.linearGradient
-                [ SA.id gradientId, SAP.x1 0, SAP.x2 0, SAP.y1 0, SAP.y2 1 ]
-                [ S.stop [ SA.stopColor chartDatum.color, SA.offset "0%", SA.stopOpacity (ST.Opacity 0.3) ] []
-                , S.stop [ SA.stopColor chartDatum.color, SA.offset "50%", SA.stopOpacity (ST.Opacity 0.2) ] []
-                , S.stop [ SA.stopColor chartDatum.color, SA.offset "100%", SA.stopOpacity (ST.Opacity 0.0) ] []
-                ]
-            ]
-        , Path.element
+        [ Path.element
             (Shape.area (shape attrs) areaPoints)
             [ Svg.Attributes.class "ew-charts--animate-fade"
             , Svg.Attributes.style ("animation-delay:" ++ String.fromInt (index * 400))
-            , Svg.Attributes.fill ("url(#" ++ gradientId ++ ")")
+            , Svg.Attributes.fill chartDatum.color
+            , Svg.Attributes.fillOpacity "0.2"
             ]
         , Path.element
             (Shape.line (shape attrs) linePoints)
