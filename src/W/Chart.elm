@@ -691,7 +691,7 @@ view widgets (W.Chart.Internal.Config cfg) =
                         , viewXGrid d.ctx
 
                         -- Labels
-                        , viewLabels renderData
+                        , viewAxisLabels renderData
 
                         -- Axis
                         , viewYAxis renderData
@@ -917,11 +917,11 @@ viewHoverWidgets ctx pointData point widgets =
 
 
 
--- Labels
+-- Axis Labels
 
 
-viewLabels : W.Chart.Internal.RenderData msg x y z -> SC.Svg msg
-viewLabels (W.Chart.Internal.RenderData d) =
+viewAxisLabels : W.Chart.Internal.RenderData msg x y z -> SC.Svg msg
+viewAxisLabels (W.Chart.Internal.RenderData d) =
     S.g
         []
         [ d.attrs.yAxis.label
@@ -929,7 +929,7 @@ viewLabels (W.Chart.Internal.RenderData d) =
             |> Maybe.map
                 (\label ->
                     W.Chart.Internal.viewTranslate
-                        { x = (d.spacings.padding.left * -1.0) + d.ctx.fontSize.lg * 1.75
+                        { x = d.ctx.fontSize.lg * -4.0
                         , y = d.spacings.chart.height * 0.5
                         }
                         [ S.text_
@@ -949,7 +949,7 @@ viewLabels (W.Chart.Internal.RenderData d) =
             |> Maybe.map
                 (\label ->
                     W.Chart.Internal.viewTranslate
-                        { x = d.spacings.padding.right + d.spacings.chart.width - (d.ctx.fontSize.lg * 1.75)
+                        { x = d.spacings.chart.width + (d.ctx.fontSize.lg * 4.0)
                         , y = d.spacings.chart.height * 0.5
                         }
                         [ S.text_
@@ -971,7 +971,7 @@ viewLabels (W.Chart.Internal.RenderData d) =
                         [ SA.textAnchor ST.AnchorMiddle
                         , SAP.fontSize d.ctx.fontSize.lg
                         , SAP.x (d.spacings.chart.width * 0.5)
-                        , SAP.y (d.spacings.padding.bottom + d.spacings.chart.height - d.ctx.fontSize.lg * 0.75)
+                        , SAP.y (d.spacings.chart.height + d.ctx.fontSize.lg * 4.0)
                         , Svg.Attributes.fill (Theme.baseForegroundWithAlpha 0.8)
                         ]
                         [ SC.text label ]
