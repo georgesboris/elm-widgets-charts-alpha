@@ -671,25 +671,24 @@ view widgets (W.Chart.Internal.Config cfg) =
                         ]
                     , HA.attribute "style"
                         ("--ew-font-sm:"
-                            ++ String.fromFloat d.ctx.fontSize.sm
-                            ++ "px;--ew-font-md:"
-                            ++ String.fromFloat d.ctx.fontSize.md
-                            ++ "px;--ew-font-lg:"
-                            ++ String.fromFloat d.ctx.fontSize.lg
-                            ++ "px"
+                            ++ toPx d.ctx.fontSize.sm
+                            ++ ";--ew-font-md:"
+                            ++ toPx d.ctx.fontSize.md
+                            ++ ";--ew-font-lg:"
+                            ++ toPx d.ctx.fontSize.lg
+                            ++ "px;padding:"
+                            ++ paddingToPixels d.spacings
                         )
                     , W.Chart.Internal.maybeAttr cfg.attrs.onMouseEnter HE.onMouseEnter
                     , W.Chart.Internal.maybeAttr cfg.attrs.onMouseLeave HE.onMouseLeave
                     ]
                     [ Svg.svg
-                        [ SA.viewBox 0 0 d.spacings.canvas.width d.spacings.canvas.height
+                        [ SA.viewBox 0 0 d.spacings.chart.width d.spacings.chart.height
                         , SA.class [ "ew-charts--svg" ]
                         ]
                         [ -- Grid
-                          W.Chart.Internal.viewTranslateChart d.spacings
-                            [ viewYGrid renderData
-                            , viewXGrid d.ctx
-                            ]
+                          viewYGrid renderData
+                        , viewXGrid d.ctx
 
                         -- Labels
                         , viewLabels renderData
@@ -699,23 +698,37 @@ view widgets (W.Chart.Internal.Config cfg) =
                         , viewZAxis renderData
 
                         -- Elements & Hover
-                        , W.Chart.Internal.viewTranslateChart d.spacings
-                            [ viewXAxis d.ctx
-                            , viewWidgets "bg" .background renderData widgets
-                            , viewWidgets "main" .main renderData widgets
-                            , viewWidgets "fg" .foreground renderData widgets
-                            , if d.attrs.labels then
-                                viewWidgets "labels" .labels renderData widgets
+                        , viewXAxis d.ctx
+                        , viewWidgets "bg" .background renderData widgets
+                        , viewWidgets "main" .main renderData widgets
+                        , viewWidgets "fg" .foreground renderData widgets
+                        , if d.attrs.labels then
+                            viewWidgets "labels" .labels renderData widgets
 
-                              else
-                                H.text ""
-                            , viewActive cfg d.ctx widgets
-                            , viewHoverAndLabels cfg d.ctx widgets
-                            ]
+                          else
+                            H.text ""
+                        , viewActive cfg d.ctx widgets
+                        , viewHoverAndLabels cfg d.ctx widgets
                         ]
                     ]
             )
         |> Maybe.withDefault (H.text "")
+
+
+paddingToPixels : W.Chart.Internal.Spacings -> String
+paddingToPixels spacings =
+    toPx spacings.padding.top
+        ++ " "
+        ++ toPx spacings.padding.right
+        ++ " "
+        ++ toPx spacings.padding.bottom
+        ++ " "
+        ++ toPx spacings.padding.left
+
+
+toPx : Float -> String
+toPx v =
+    String.fromFloat v ++ "px"
 
 
 
@@ -916,8 +929,8 @@ viewLabels (W.Chart.Internal.RenderData d) =
             |> Maybe.map
                 (\label ->
                     W.Chart.Internal.viewTranslate
-                        { x = d.ctx.fontSize.lg * 1.75
-                        , y = d.spacings.padding.top + d.spacings.chart.height * 0.5
+                        { x = (d.spacings.padding.left * -1.0) + d.ctx.fontSize.lg * 1.75
+                        , y = d.spacings.chart.height * 0.5
                         }
                         [ S.text_
                             [ SA.transform [ ST.Rotate 270 0 0 ]
@@ -936,8 +949,8 @@ viewLabels (W.Chart.Internal.RenderData d) =
             |> Maybe.map
                 (\label ->
                     W.Chart.Internal.viewTranslate
-                        { x = d.spacings.canvas.width - d.ctx.fontSize.lg * 1.75
-                        , y = d.spacings.padding.top + d.spacings.chart.height * 0.5
+                        { x = d.spacings.padding.right + d.spacings.chart.width - (d.ctx.fontSize.lg * 1.75)
+                        , y = d.spacings.chart.height * 0.5
                         }
                         [ S.text_
                             [ SA.transform [ ST.Rotate 90 0 0 ]
@@ -957,8 +970,8 @@ viewLabels (W.Chart.Internal.RenderData d) =
                     S.text_
                         [ SA.textAnchor ST.AnchorMiddle
                         , SAP.fontSize d.ctx.fontSize.lg
-                        , SAP.x (d.spacings.padding.left + d.spacings.chart.width * 0.5)
-                        , SAP.y (d.spacings.canvas.height - d.ctx.fontSize.lg * 0.75)
+                        , SAP.x (d.spacings.chart.width * 0.5)
+                        , SAP.y (d.spacings.padding.bottom + d.spacings.chart.height - d.ctx.fontSize.lg * 0.75)
                         , Svg.Attributes.fill (Theme.baseForegroundWithAlpha 0.8)
                         ]
                         [ SC.text label ]
@@ -1064,10 +1077,7 @@ viewYAxis (W.Chart.Internal.RenderData d) =
                     else
                         d.ctx.y.format
             in
-            W.Chart.Internal.viewTranslate
-                { x = d.spacings.padding.left
-                , y = d.spacings.padding.top
-                }
+            S.g []
                 [ S.g
                     [ SA.class [ "ew-charts--y-axis" ] ]
                     [ viewAxis
@@ -1106,8 +1116,8 @@ viewZAxis (W.Chart.Internal.RenderData d) =
                         d.ctx.z.format
             in
             W.Chart.Internal.viewTranslate
-                { x = d.spacings.padding.left + d.spacings.chart.width
-                , y = d.spacings.padding.top
+                { x = d.spacings.chart.width
+                , y = 0
                 }
                 [ S.g
                     [ SA.class [ "ew-charts--z-axis" ] ]

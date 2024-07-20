@@ -160,10 +160,10 @@ main =
                                     }
                             }
                             |> W.Chart.withActive (Maybe.map Tuple.first model.onClick)
-                            -- |> W.Chart.withHover
-                            --     [ W.Chart.onMouseEnter (\c a -> OnMouseEnter c (toColor a))
-                            --     , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
-                            --     ]
+                            |> W.Chart.withHover
+                                [ W.Chart.onMouseEnter (\c a -> OnMouseEnter c (toColor a))
+                                , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
+                                ]
                 in
                 viewWrapper model
                     [ chartConfig
@@ -171,9 +171,9 @@ main =
                             [ W.Chart.Bar.fromY
                                 [ W.Chart.Bar.labelsOutside
                                 , W.Chart.Bar.labelsAsPercentages
-                                , W.Chart.Bar.onClick (\a -> OnClickDatum (W.Chart.Colors.colorByIndex W.Chart.Colors.rainbow a))
+                                , W.Chart.Bar.onMouseEnter (\a -> OnClickDatum (W.Chart.Colors.colorByIndex W.Chart.Colors.rainbow a))
                                 ]
-                            -- , W.Chart.Line.fromY [ W.Chart.Line.labelsAsPercentages ]
+                            , W.Chart.Line.fromZ [ W.Chart.Line.labelsAsPercentages ]
                             , W.Chart.Tooltip.fromYZ []
                             ]
                     , chartConfig

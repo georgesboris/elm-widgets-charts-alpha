@@ -51,7 +51,6 @@ module W.Chart.Internal exposing
     , toRenderData
     , viewHtml
     , viewTranslate
-    , viewTranslateChart
     )
 
 import Axis
@@ -1168,14 +1167,6 @@ viewTranslate : { x : Float, y : Float } -> List (SC.Svg msg) -> SC.Svg msg
 viewTranslate props children =
     S.g [ SA.transform [ ST.Translate props.x props.y ] ]
         children
-
-
-viewTranslateChart : Spacings -> List (SC.Svg msg) -> SC.Svg msg
-viewTranslateChart spacings =
-    viewTranslate
-        { x = spacings.padding.left
-        , y = spacings.padding.top
-        }
 
 
 viewHtml : List (Svg.Attribute msg) -> List (Svg.Svg msg) -> SC.Svg msg
