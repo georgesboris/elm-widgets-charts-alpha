@@ -293,6 +293,7 @@ type alias RenderDataYZ x a =
     , toValue : a -> x -> Maybe Float
     , scale : Scale.ContinuousScale Float
     , stack : Shape.StackResult (ChartDatum a)
+    , isStacked : Bool
     , bandData : List ( ChartDatum a, List ( Float, Float ) )
     , values :
         List
@@ -875,11 +876,15 @@ scaleStackedData scale yz =
 
                                                 valueScaled : Float
                                                 valueScaled =
-                                                    if render.valueStart > 0.0 then
-                                                        startScaled
+                                                    if yz.isStacked then
+                                                        if render.valueStart > 0.0 then
+                                                            startScaled
+
+                                                        else
+                                                            endScaled
 
                                                     else
-                                                        endScaled
+                                                        Scale.convert scale render.valueScaled
                                             in
                                             { point
                                                 | render =
@@ -959,6 +964,7 @@ toStackedData props =
     , toColor = props.axisData.toColor
     , toValue = props.axisData.toValue
     , scale = scale
+    , isStacked = props.axisConfig.stackType /= NotStacked
     , stack = stack
     , values =
         List.map2

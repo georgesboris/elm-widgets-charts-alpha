@@ -91,25 +91,48 @@ view :
     , ctx : W.Chart.Context x y z
     , color : String
     , label : String
+    , alignCenter : Bool
     , alignBottom : Bool
     }
     -> SC.Svg msg
 view props =
-    S.text_
-        [ SAP.x props.x
-        , SAP.strokeWidth 3
-        , Svg.Attributes.fill Theme.baseForeground
-        , Svg.Attributes.stroke Theme.baseBackground
-        , Svg.Attributes.style "paint-order:stroke"
-        , SAP.fontSize props.ctx.fontSize.lg
-        , SA.textAnchor ST.AnchorMiddle
-        , if props.alignBottom then
-            SAP.y (props.y + props.ctx.fontSize.lg * 1.1)
+    let
+        y : Float
+        y =
+            if props.alignCenter then
+                props.y - props.ctx.fontSize.lg * 0.5
 
-          else
-            SAP.y (props.y - props.ctx.fontSize.lg * 0.5)
-        ]
-        [ SC.text props.label
+            else if props.alignBottom then
+                props.y + props.ctx.fontSize.lg * 1.1
+
+            else
+                props.y - props.ctx.fontSize.lg * 0.5
+    in
+    S.g
+        []
+        [ S.text_
+            [ SAP.x props.x
+            , SAP.y y
+            , SAP.strokeWidth 6
+            , Svg.Attributes.fill props.color
+            , Svg.Attributes.stroke props.color
+            , SAP.fontSize props.ctx.fontSize.lg
+            , SA.textAnchor ST.AnchorMiddle
+            ]
+            [ SC.text props.label
+            ]
+        , S.text_
+            [ SAP.x props.x
+            , SAP.y y
+            , SAP.strokeWidth 4
+            , Svg.Attributes.fill Theme.baseForeground
+            , Svg.Attributes.stroke Theme.baseBackground
+            , Svg.Attributes.style "paint-order:stroke"
+            , SAP.fontSize props.ctx.fontSize.lg
+            , SA.textAnchor ST.AnchorMiddle
+            ]
+            [ SC.text props.label
+            ]
         ]
 
 
@@ -121,13 +144,51 @@ viewList :
 viewList =
     Attr.withAttrs defaultAttrs
         (\attrs props ->
+            let
+                xMaxLabels : Int
+                xMaxLabels =
+                    Basics.floor props.ctx.width // 60
+
+                length : Int
+                length =
+                    List.length props.points
+
+                step : Int
+                step =
+                    if length <= xMaxLabels then
+                        1
+
+                    else
+                        length // xMaxLabels
+            in
             props.points
-                |> List.concatMap
-                    (\( x, ys ) ->
-                        ys
-                            |> List.map
-                                (\y -> viewPoint attrs props.ctx x.valueScaled ys y False)
+                |> List.indexedMap
+                    (\index ( x, ys ) ->
+                        let
+                            visibleStep : Bool
+                            visibleStep =
+                                modBy step index == 0
+                        in
+                        if visibleStep then
+                            ys
+                                |> List.map
+                                    (\y ->
+                                        let
+                                            visibleHeight : Bool
+                                            visibleHeight =
+                                                abs (y.valueEnd - y.valueStart) >= props.ctx.fontSize.lg
+                                        in
+                                        if visibleHeight then
+                                            viewPoint attrs props.ctx x.valueScaled ys y False
+
+                                        else
+                                            H.text ""
+                                    )
+
+                        else
+                            []
                     )
+                |> List.concat
                 |> S.g []
         )
 
@@ -144,14 +205,14 @@ viewBinsList :
 viewBinsList =
     Attr.withAttrs defaultAttrs
         (\attrs props ->
-            let
-                yCount : Int
-                yCount =
-                    binCount props.ctx.y
-            in
             props.points
                 |> List.concatMap
                     (\point ->
+                        let
+                            yCount : Int
+                            yCount =
+                                yBinCount props.ctx.y point.y
+                        in
                         viewBinsListPoint attrs
                             { binScale = props.binScale
                             , ctx = props.ctx
@@ -185,6 +246,11 @@ viewBinsListPoint :
         }
     -> List (SC.Svg msg)
 viewBinsListPoint attrs props =
+    let
+        yzPoints : List W.Chart.RenderDatum
+        yzPoints =
+            List.map .render props.yz
+    in
     props.yz
         |> List.indexedMap
             (\index point ->
@@ -205,15 +271,15 @@ viewBinsListPoint attrs props =
                     attrs
                     props.ctx
                     x
-                    (List.map .render props.yz)
+                    yzPoints
                     point.render
                     props.isStacked
             )
 
 
-binCount : W.Chart.Internal.RenderAxisYZ a -> Int
-binCount axis =
-    case List.length axis.data of
+yBinCount : W.Chart.Internal.RenderAxisYZ y -> List (W.Chart.Point y) -> Int
+yBinCount axis yList =
+    case List.length yList of
         0 ->
             0
 
@@ -252,33 +318,10 @@ viewPoint attrs ctx x pointList point isStacked =
             , x = x
             , y = point.valueScaled
             , color = point.color
+            , alignCenter = False
             , alignBottom = (point.value > 0.0 && position == Inside) || (point.value <= 0.0 && position == Outside)
             , label =
                 attrs.format
                     |> Maybe.map (\fn -> fn (List.map .value pointList) point.value)
                     |> Maybe.withDefault point.valueString
             }
-
-
-
--- S.text_
--- [ SAP.x x
--- , SAP.strokeWidth 3
--- , Svg.Attributes.fill point.color
--- , Svg.Attributes.stroke Theme.baseBackground
--- , Svg.Attributes.style "paint-order:stroke"
--- , SAP.fontSize ctx.fontSize.lg
--- , SA.textAnchor ST.AnchorMiddle
--- , if
---     (point.value > 0.0 && (attrs.position == Inside || isStacked))
---         || (attrs.position == Outside && point.value < 0.0)
---   then
---     SAP.y (point.valueScaled + ctx.fontSize.lg * 1.1)
---   else
---     SAP.y (point.valueScaled - ctx.fontSize.lg * 0.5)
--- ]
--- [ attrs.format
---     |> Maybe.map (\fn -> fn (List.map .value pointList) point.value)
---     |> Maybe.withDefault point.valueString
---     |> SC.text
--- ]

@@ -2,8 +2,10 @@ module W.Chart.Bar exposing
     ( fromY, fromZ, fromYZ
     , margins
     , showLabels, labelFormat, labelFormatWithList, labelsAsPercentages, labelsOutside
-    , onClick, onMouseEnter, onMouseLeave, EventTarget(..)
+    , labelForStack
+    , onClick, onMouseEnter, onMouseLeave
     , Attribute
+    , AxisDatum(..)
     )
 
 {-|
@@ -12,6 +14,7 @@ module W.Chart.Bar exposing
 
 @docs margins
 @docs showLabels, labelFormat, labelFormatWithList, labelsAsPercentages, labelsOutside
+@docs labelForStack
 @docs onClick, onMouseEnter, onMouseLeave, EventTarget
 @docs Attribute
 
@@ -38,7 +41,7 @@ import W.Chart.Widget.Label
 
 
 {-| -}
-type EventTarget y z
+type AxisDatum y z
     = YDatum y
     | ZDatum z
 
@@ -54,6 +57,7 @@ type alias Attributes a msg =
     , labels : Bool
     , labelPosition : W.Chart.Widget.Label.Attribute
     , labelFormat : W.Chart.Widget.Label.Attribute
+    , stackLabel : Maybe (List ( a, Float ) -> String)
     , onClick : Maybe (a -> msg)
     , onMouseEnter : Maybe (a -> msg)
     , onMouseLeave : Maybe (a -> msg)
@@ -67,6 +71,7 @@ defaultAttrs =
     , labels = False
     , labelPosition = W.Chart.Widget.Label.inside
     , labelFormat = Attr.none
+    , stackLabel = Nothing
     , onClick = Nothing
     , onMouseEnter = Nothing
     , onMouseLeave = Nothing
@@ -107,6 +112,12 @@ labelFormatWithList fn =
 labelsAsPercentages : Attribute a msg
 labelsAsPercentages =
     Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.formatAsPercentage })
+
+
+{-| -}
+labelForStack : (List ( a, Float ) -> String) -> Attribute a msg
+labelForStack fn =
+    Attr.attr (\attr -> { attr | stackLabel = Just fn })
 
 
 {-| -}
@@ -251,7 +262,7 @@ fromZ =
 
 
 {-| -}
-fromYZ : List (Attribute (EventTarget y z) msg) -> W.Chart.WidgetXYZ msg x y z a
+fromYZ : List (Attribute (AxisDatum y z) msg) -> W.Chart.WidgetXYZ msg x y z a
 fromYZ =
     Attr.withAttrs defaultAttrs
         (\attrs ->

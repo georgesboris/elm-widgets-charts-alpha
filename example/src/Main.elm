@@ -3,6 +3,8 @@ module Main exposing (main)
 import Browser
 import Date exposing (Date)
 import Dict exposing (Dict)
+import FormatNumber
+import FormatNumber.Locales
 import Html as H
 import Html.Attributes as HA
 import Theme
@@ -49,70 +51,6 @@ update msg model =
             { model | onHover = Nothing, onClick = Nothing }
 
 
-toColor : { a | y : List (W.Chart.Point y) } -> String
-toColor point =
-    point.y
-        |> List.head
-        |> Maybe.map (.render >> .color)
-        |> Maybe.withDefault "black"
-
-
-
--- 1. What is our data?
-
-
-date : Int -> Month -> Int -> Date
-date =
-    Date.fromCalendarDate
-
-
-dates : List Date
-dates =
-    List.range 1 10
-        |> List.map (\i -> Date.fromCalendarDate 2023 Jan i)
-
-
-impressionsList : List ( Date, Float )
-impressionsList =
-    [ ( date 2023 Jan 1, 1000 )
-    , ( date 2023 Jan 2, 2000 )
-    , ( date 2023 Jan 3, 2500 )
-    , ( date 2023 Jan 4, 3000 )
-    , ( date 2023 Jan 5, 1800 )
-    , ( date 2023 Jan 6, 1600 )
-    , ( date 2023 Jan 7, 1200 )
-    ]
-
-
-purchasesList : List ( Date, Float )
-purchasesList =
-    [ ( date 2023 Jan 1, 10 )
-
-    -- , ( date 2023 Jan 2, 7 )
-    , ( date 2023 Jan 3, 13 )
-    , ( date 2023 Jan 4, 20 )
-    , ( date 2023 Jan 5, 24 )
-    , ( date 2023 Jan 6, 18 )
-    , ( date 2023 Jan 7, -10 )
-    , ( date 2023 Jan 8, 12 )
-    ]
-
-
-
--- Some Helpers (for now)
-
-
-purchasesDict : Dict Int Float
-purchasesDict =
-    purchasesList
-        |> List.map (Tuple.mapFirst Date.toRataDie)
-        |> Dict.fromList
-
-
-purchasesByDay : Date -> Maybe Float
-purchasesByDay day =
-    Dict.get (Date.toRataDie day) purchasesDict
-
 
 
 -- 2. Exploring visualizations
@@ -125,66 +63,46 @@ main =
         , update = update
         , view =
             \model ->
-                let
-                    chartConfig : W.Chart.ConfigXYZ Msg Date.Date Int TrigFunction
-                    chartConfig =
-                        W.Chart.fromXYZ
-                            [ W.Chart.onMouseLeaveChart OnMouseLeaveChart
-                            ]
-                            { x =
-                                W.Chart.xAxis
-                                    [ W.Chart.ticks 6
-                                    , W.Chart.axisLabel "X Axis"
-                                    ]
-                                    { data = dates
-                                    , toLabel = Date.format "MMM d"
-                                    }
-                            , y =
-                                W.Chart.axisList
-                                    [ W.Chart.axisLabel "Y Axis"
-                                    , W.Chart.stacked
-                                    ]
-                                    { data = List.range 0 3
-                                    , toLabel = String.fromInt
-                                    , toColor = W.Chart.Colors.colorByIndex W.Chart.Colors.rainbow
-                                    , toValue = \_ -> purchasesByDay
-                                    }
-                            , z =
-                                W.Chart.axisList
-                                    [ W.Chart.axisLabel "Z Axis", W.Chart.stacked ]
-                                    { data = [ Cos ]
-                                    , toLabel = trigFnLabel
-                                    , toColor = trigFnColor
-                                    , toValue = \fn x -> Just ((applyTrigFn fn (toFloat (Date.toRataDie x))))
-                                    }
-                            }
-                            |> W.Chart.withActive (Maybe.map Tuple.first model.onClick)
-                            |> W.Chart.withHover
-                                [ W.Chart.onMouseEnter (\c a -> OnMouseEnter c (toColor a))
-                                , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
-                                ]
-                in
                 viewWrapper model
-                    [ chartConfig
-                        |> W.Chart.view
-                            [ W.Chart.Bar.fromY
-                                [ W.Chart.Bar.showLabels
-                                , W.Chart.Bar.labelsOutside
-                                , W.Chart.Bar.labelsAsPercentages
-                                , W.Chart.Bar.onMouseEnter (\a -> OnClickDatum (W.Chart.Colors.colorByIndex W.Chart.Colors.rainbow a))
+                    [ W.Chart.fromXYZ
+                        [ W.Chart.dontAutoHideLabels
+                        , W.Chart.onMouseLeaveChart OnMouseLeaveChart
+                        ]
+                        { x =
+                            W.Chart.xAxis
+                                [ W.Chart.ticks 6
+                                , W.Chart.axisLabel "X Axis"
                                 ]
-                            , W.Chart.Line.fromZ [ W.Chart.Line.labelsAsPercentages ]
-                            , W.Chart.Tooltip.fromYZ []
+                                { data =
+                                    List.range 1 11
+                                        |> List.map (\i -> Date.fromOrdinalDate 2023 i)
+                                , toLabel = Date.format "MMM d"
+                                }
+                        , y =
+                            W.Chart.axisList
+                                [ W.Chart.axisLabel "Y Axis" ]
+                                { data = List.range 0 3
+                                , toLabel = String.fromInt
+                                , toValue = toValue (\x -> Basics.sin x)
+                                , toColor =  W.Chart.Colors.colorByIndex W.Chart.Colors.warm
+                                }
+                        , z =
+                            W.Chart.axisList
+                                [ W.Chart.axisLabel "Z Axis" ]
+                                { data = List.range 4 6
+                                , toLabel = String.fromInt
+                                , toValue = toValue Basics.cos
+                                , toColor =  W.Chart.Colors.colorByIndex W.Chart.Colors.cool
+                                }
+                        }
+                        |> W.Chart.withActive (Maybe.map Tuple.first model.onClick)
+                        |> W.Chart.withHover
+                            [ W.Chart.onMouseEnter (\c a -> OnMouseEnter c (toColor a))
+                            , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
                             ]
-                    , chartConfig
                         |> W.Chart.view
-                            [ W.Chart.Line.fromZ
-                                [ W.Chart.Line.areaAlways
-                                , W.Chart.Line.onMouseEnter (\_ -> OnClickDatum "pink")
-                                , W.Chart.Line.onMouseLeave (\_ -> OnClickDatum "blue")
-                                ]
-
-                            -- , W.Chart.Line.fromZ []
+                            [ W.Chart.Line.fromY []
+                            , W.Chart.Bar.fromZ [ W.Chart.Bar.showLabels ]
                             , W.Chart.Tooltip.fromYZ
                                 [ W.Chart.Tooltip.yAxisLabel [ H.text "YYY" ]
                                 , W.Chart.Tooltip.headerValue
@@ -220,84 +138,15 @@ main =
                                     )
                                 ]
                             ]
-                    ]
+                ]
         }
 
-
-sumAt : (a -> Float) -> List a -> Float
-sumAt fn xs =
-    List.foldl (\x acc -> fn x + acc) 0 xs
-
-
-pctString : Float -> String
-pctString v =
-    String.fromFloat (v * 100) ++ "%"
-
+toValue : (Float -> Float) -> Int -> Date -> Maybe Float
+toValue fn a x =
+    Just (fn (toFloat (a + Date.ordinalDay x)))
 
 
 --
-
-
-type TrigFunction
-    = Cos
-    | Sin
-
-
-applyTrigFn : TrigFunction -> Float -> Float
-applyTrigFn v =
-    case v of
-        Cos ->
-            \x -> cos (x * 0.5)
-
-        Sin ->
-            \x -> sin (x * 0.5)
-
-
-trigFnLabel : TrigFunction -> String
-trigFnLabel v =
-    case v of
-        Cos ->
-            "Cos"
-
-        Sin ->
-            "Sin"
-
-
-trigFnColor : TrigFunction -> String
-trigFnColor v =
-    let
-        index : Int
-        index =
-            case v of
-                Cos ->
-                    0
-
-                Sin ->
-                    1
-    in
-    W.Chart.Colors.colorByIndex W.Chart.Colors.purple index
-
-
-type alias Data =
-    { label : String
-    , color : String
-    , toValue : Float -> Float
-    }
-
-
-zDataset : List Data
-zDataset =
-    [ ( "(x-1)^2", \x -> 2 ^ (x - 1) )
-    , ( "x^2", \x -> 2 ^ x )
-    ]
-        |> List.indexedMap
-            (\index ( label, fn ) ->
-                { label = label
-                , color = W.Chart.Colors.colorByIndex W.Chart.Colors.mix (index + 3)
-                , toValue = fn
-                }
-            )
-
 
 viewWrapper : Model -> List (H.Html msg) -> H.Html msg
 viewWrapper model children =
@@ -366,3 +215,32 @@ viewColor ( top, right ) maybeColor =
                     []
             )
         |> Maybe.withDefault (H.text "")
+
+
+toColor : { a | y : List (W.Chart.Point y) } -> String
+toColor point =
+    point.y
+        |> List.head
+        |> Maybe.map (.render >> .color)
+        |> Maybe.withDefault "black"
+
+
+--
+
+sumAt : (a -> Float) -> List a -> Float
+sumAt fn xs =
+    List.foldl (\x acc -> fn x + acc) 0 xs
+
+
+baseLocale : FormatNumber.Locales.Locale
+baseLocale =
+    FormatNumber.Locales.base
+
+pctString : Float -> String
+pctString v =
+    (v * 100)
+    |> FormatNumber.format { baseLocale | decimals = FormatNumber.Locales.Exact 2, positivePrefix = "+" }
+    |> (\x -> x ++ "%")
+
+
+
