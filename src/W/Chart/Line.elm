@@ -1,7 +1,7 @@
 module W.Chart.Line exposing
     ( fromY, fromZ
     , smooth, dashed, areaAlways, lineAlways
-    , labelFormat, labelFormatWithList, labelsAsPercentages
+    , showLabels, labelFormat, labelFormatWithList, labelsAsPercentages
     , onClick, onMouseEnter, onMouseLeave
     , Attribute
     )
@@ -11,7 +11,7 @@ module W.Chart.Line exposing
 @docs fromY, fromZ
 
 @docs smooth, dashed, areaAlways, lineAlways
-@docs labelFormat, labelFormatWithList, labelsAsPercentages
+@docs showLabels, labelFormat, labelFormatWithList, labelsAsPercentages
 @docs onClick, onMouseEnter, onMouseLeave
 @docs Attribute
 
@@ -19,6 +19,7 @@ module W.Chart.Line exposing
 
 import Attr
 import Dict
+import Html as H
 import Path
 import Shape
 import SubPath
@@ -44,16 +45,20 @@ fromY =
             W.Chart.Widget.fromY (\ctx -> viewLines attrs ctx.y ctx.points.y)
                 |> W.Chart.Widget.withLabels
                     (\ctx ->
-                        W.Chart.Widget.Label.viewList [ attrs.labelFormat ]
-                            { ctx = ctx
-                            , points =
-                                ctx.points.byX
-                                    |> Dict.values
-                                    |> List.map
-                                        (\data ->
-                                            ( data.x.render, data.yRender )
-                                        )
-                            }
+                        if attrs.labels then
+                            W.Chart.Widget.Label.viewList [ attrs.labelFormat ]
+                                { ctx = ctx
+                                , points =
+                                    ctx.points.byX
+                                        |> Dict.values
+                                        |> List.map
+                                            (\data ->
+                                                ( data.x.render, data.yRender )
+                                            )
+                                }
+
+                        else
+                            H.text ""
                     )
                 |> W.Chart.Widget.withHover (\_ _ point -> viewHover point.x point.y)
         )
@@ -67,16 +72,20 @@ fromZ =
             W.Chart.Widget.fromZ (\ctx -> viewLines attrs ctx.z ctx.points.z)
                 |> W.Chart.Widget.withLabels
                     (\ctx ->
-                        W.Chart.Widget.Label.viewList [ attrs.labelFormat ]
-                            { ctx = ctx
-                            , points =
-                                ctx.points.byX
-                                    |> Dict.values
-                                    |> List.map
-                                        (\data ->
-                                            ( data.x.render, data.zRender )
-                                        )
-                            }
+                        if attrs.labels then
+                            W.Chart.Widget.Label.viewList [ attrs.labelFormat ]
+                                { ctx = ctx
+                                , points =
+                                    ctx.points.byX
+                                        |> Dict.values
+                                        |> List.map
+                                            (\data ->
+                                                ( data.x.render, data.zRender )
+                                            )
+                                }
+
+                        else
+                            H.text ""
                     )
                 |> W.Chart.Widget.withHover (\_ _ point -> viewHover point.x point.z)
         )
@@ -95,6 +104,7 @@ type alias Attributes a msg =
     { smooth : Bool
     , dashed : Bool
     , area : Maybe Bool
+    , labels : Bool
     , labelFormat : W.Chart.Widget.Label.Attribute
     , onClick : Maybe (a -> msg)
     , onMouseEnter : Maybe (a -> msg)
@@ -107,6 +117,7 @@ defaultAttrs =
     { smooth = False
     , dashed = False
     , area = Nothing
+    , labels = False
     , labelFormat = Attr.none
     , onClick = Nothing
     , onMouseEnter = Nothing
@@ -136,6 +147,12 @@ lineAlways =
 areaAlways : Attribute a msg
 areaAlways =
     Attr.attr (\attr -> { attr | area = Just True })
+
+
+{-| -}
+showLabels : Attribute a msg
+showLabels =
+    Attr.attr (\attr -> { attr | labels = True })
 
 
 {-| -}

@@ -129,8 +129,7 @@ main =
                     chartConfig : W.Chart.ConfigXYZ Msg Date.Date Int TrigFunction
                     chartConfig =
                         W.Chart.fromXYZ
-                            [ -- W.Chart.showLabels
-                             W.Chart.onMouseLeaveChart OnMouseLeaveChart
+                            [ W.Chart.onMouseLeaveChart OnMouseLeaveChart
                             ]
                             { x =
                                 W.Chart.xAxis
@@ -169,7 +168,8 @@ main =
                     [ chartConfig
                         |> W.Chart.view
                             [ W.Chart.Bar.fromY
-                                [ W.Chart.Bar.labelsOutside
+                                [ W.Chart.Bar.showLabels
+                                , W.Chart.Bar.labelsOutside
                                 , W.Chart.Bar.labelsAsPercentages
                                 , W.Chart.Bar.onMouseEnter (\a -> OnClickDatum (W.Chart.Colors.colorByIndex W.Chart.Colors.rainbow a))
                                 ]

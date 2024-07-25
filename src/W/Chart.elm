@@ -2,7 +2,7 @@ module W.Chart exposing
     ( globalStyles, fromX, fromXY, fromXYZ, ConfigX, ConfigXY, ConfigXYZ, Config, ChartAttribute
     , xAxis, axis, axisList
     , axisLabel, defaultValue, format, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
-    , showLabels, dontAutoHideLabels
+    , noLabels, dontAutoHideLabels
     , id
     , width, ratio, background
     , padding, paddingX, paddingY, paddingCustom
@@ -34,7 +34,7 @@ module W.Chart exposing
 
 # Labels
 
-@docs showLabels, dontAutoHideLabels
+@docs noLabels, dontAutoHideLabels
 
 
 # Testing
@@ -448,9 +448,9 @@ debug =
 
 
 {-| -}
-showLabels : ChartAttribute msg
-showLabels =
-    Attr.attr (\attrs -> { attrs | labels = True })
+noLabels : ChartAttribute msg
+noLabels =
+    Attr.attr (\attrs -> { attrs | labels = False })
 
 
 {-| -}

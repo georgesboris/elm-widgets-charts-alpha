@@ -1,7 +1,7 @@
 module W.Chart.Bar exposing
     ( fromY, fromZ, fromYZ
     , margins
-    , labelFormat, labelFormatWithList, labelsAsPercentages, labelsOutside
+    , showLabels, labelFormat, labelFormatWithList, labelsAsPercentages, labelsOutside
     , onClick, onMouseEnter, onMouseLeave, EventTarget(..)
     , Attribute
     )
@@ -11,7 +11,7 @@ module W.Chart.Bar exposing
 @docs fromY, fromZ, fromYZ
 
 @docs margins
-@docs labelFormat, labelFormatWithList, labelsAsPercentages, labelsOutside
+@docs showLabels, labelFormat, labelFormatWithList, labelsAsPercentages, labelsOutside
 @docs onClick, onMouseEnter, onMouseLeave, EventTarget
 @docs Attribute
 
@@ -19,6 +19,7 @@ module W.Chart.Bar exposing
 
 import Attr
 import Dict
+import Html as H
 import Scale
 import Svg
 import Svg.Attributes
@@ -50,6 +51,7 @@ type alias Attribute a msg =
 type alias Attributes a msg =
     { outerMargin : Float
     , innerMargin : Float
+    , labels : Bool
     , labelPosition : W.Chart.Widget.Label.Attribute
     , labelFormat : W.Chart.Widget.Label.Attribute
     , onClick : Maybe (a -> msg)
@@ -62,6 +64,7 @@ defaultAttrs : Attributes a msg
 defaultAttrs =
     { innerMargin = 0.2
     , outerMargin = 0.5
+    , labels = False
     , labelPosition = W.Chart.Widget.Label.inside
     , labelFormat = Attr.none
     , onClick = Nothing
@@ -74,6 +77,12 @@ defaultAttrs =
 margins : Float -> Float -> Attribute a msg
 margins innerMargin outerMargin =
     Attr.attr (\attr -> { attr | innerMargin = innerMargin, outerMargin = outerMargin })
+
+
+{-| -}
+showLabels : Attribute a msg
+showLabels =
+    Attr.attr (\attr -> { attr | labels = True })
 
 
 {-| -}
@@ -139,32 +148,36 @@ fromY =
                 )
                 |> W.Chart.Widget.withLabels
                     (\ctx ->
-                        let
-                            yCount : Int
-                            yCount =
-                                binCount ctx.y
+                        if attrs.labels then
+                            let
+                                yCount : Int
+                                yCount =
+                                    binCount ctx.y
 
-                            binScale : Scale.BandScale Int
-                            binScale =
-                                toBinScale attrs ctx yCount
-                        in
-                        W.Chart.Widget.Label.viewBinsList
-                            [ attrs.labelPosition
-                            , attrs.labelFormat
-                            ]
-                            { binScale = binScale
-                            , ctx = ctx
-                            , points =
-                                ctx.points.byX
-                                    |> Dict.values
-                                    |> List.map
-                                        (\data ->
-                                            { x = data.x
-                                            , y = data.y
-                                            , z = []
-                                            }
-                                        )
-                            }
+                                binScale : Scale.BandScale Int
+                                binScale =
+                                    toBinScale attrs ctx yCount
+                            in
+                            W.Chart.Widget.Label.viewBinsList
+                                [ attrs.labelPosition
+                                , attrs.labelFormat
+                                ]
+                                { binScale = binScale
+                                , ctx = ctx
+                                , points =
+                                    ctx.points.byX
+                                        |> Dict.values
+                                        |> List.map
+                                            (\data ->
+                                                { x = data.x
+                                                , y = data.y
+                                                , z = []
+                                                }
+                                            )
+                                }
+
+                        else
+                            H.text ""
                     )
                 |> W.Chart.Widget.withHover
                     (\ctx ->
@@ -195,32 +208,36 @@ fromZ =
                 )
                 |> W.Chart.Widget.withLabels
                     (\ctx ->
-                        let
-                            zCount : Int
-                            zCount =
-                                binCount ctx.z
+                        if attrs.labels then
+                            let
+                                zCount : Int
+                                zCount =
+                                    binCount ctx.z
 
-                            binScale : Scale.BandScale Int
-                            binScale =
-                                toBinScale attrs ctx zCount
-                        in
-                        W.Chart.Widget.Label.viewBinsList
-                            [ attrs.labelPosition
-                            , attrs.labelFormat
-                            ]
-                            { binScale = binScale
-                            , ctx = ctx
-                            , points =
-                                ctx.points.byX
-                                    |> Dict.values
-                                    |> List.map
-                                        (\data ->
-                                            { x = data.x
-                                            , z = data.z
-                                            , y = []
-                                            }
-                                        )
-                            }
+                                binScale : Scale.BandScale Int
+                                binScale =
+                                    toBinScale attrs ctx zCount
+                            in
+                            W.Chart.Widget.Label.viewBinsList
+                                [ attrs.labelPosition
+                                , attrs.labelFormat
+                                ]
+                                { binScale = binScale
+                                , ctx = ctx
+                                , points =
+                                    ctx.points.byX
+                                        |> Dict.values
+                                        |> List.map
+                                            (\data ->
+                                                { x = data.x
+                                                , z = data.z
+                                                , y = []
+                                                }
+                                            )
+                                }
+
+                        else
+                            H.text ""
                     )
                 |> W.Chart.Widget.withHover
                     (\ctx ->
@@ -260,36 +277,40 @@ fromYZ =
                 )
                 |> W.Chart.Widget.withLabels
                     (\ctx ->
-                        let
-                            yCount : Int
-                            yCount =
-                                binCount ctx.y
+                        if attrs.labels then
+                            let
+                                yCount : Int
+                                yCount =
+                                    binCount ctx.y
 
-                            zCount : Int
-                            zCount =
-                                binCount ctx.z
+                                zCount : Int
+                                zCount =
+                                    binCount ctx.z
 
-                            binScale : Scale.BandScale Int
-                            binScale =
-                                toBinScale attrs ctx (yCount + zCount)
-                        in
-                        W.Chart.Widget.Label.viewBinsList
-                            [ attrs.labelPosition
-                            , attrs.labelFormat
-                            ]
-                            { binScale = binScale
-                            , ctx = ctx
-                            , points =
-                                ctx.points.byX
-                                    |> Dict.values
-                                    |> List.map
-                                        (\data ->
-                                            { x = data.x
-                                            , y = data.y
-                                            , z = data.z
-                                            }
-                                        )
-                            }
+                                binScale : Scale.BandScale Int
+                                binScale =
+                                    toBinScale attrs ctx (yCount + zCount)
+                            in
+                            W.Chart.Widget.Label.viewBinsList
+                                [ attrs.labelPosition
+                                , attrs.labelFormat
+                                ]
+                                { binScale = binScale
+                                , ctx = ctx
+                                , points =
+                                    ctx.points.byX
+                                        |> Dict.values
+                                        |> List.map
+                                            (\data ->
+                                                { x = data.x
+                                                , y = data.y
+                                                , z = data.z
+                                                }
+                                            )
+                                }
+
+                        else
+                            H.text ""
                     )
                 |> W.Chart.Widget.withHover
                     (\ctx ->

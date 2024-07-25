@@ -779,7 +779,7 @@ defaultAxisAttributes =
 defaultAttrs : Attributes msg
 defaultAttrs =
     { debug = False
-    , labels = False
+    , labels = True
     , labelsAutoHide = True
     , width = 960
     , ratio = 0.5
