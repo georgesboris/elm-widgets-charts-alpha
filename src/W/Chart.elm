@@ -1,7 +1,7 @@
 module W.Chart exposing
     ( globalStyles, fromX, fromXY, fromXYZ, ConfigX, ConfigXY, ConfigXYZ, Config, ChartAttribute
     , xAxis, axis, axisList
-    , axisLabel, defaultValue, format, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
+    , axisLabel, defaultValue, format, formatStack, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
     , noLabels, dontAutoHideLabels
     , id
     , width, ratio, background
@@ -29,7 +29,7 @@ module W.Chart exposing
 
 # Axis Attributes
 
-@docs axisLabel, defaultValue, format, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
+@docs axisLabel, defaultValue, format, formatStack, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
 
 
 # Labels
@@ -596,6 +596,12 @@ defaultValue v =
 format : (Float -> String) -> AxisAttribute
 format v =
     Attr.attr (\attrs -> { attrs | format = v })
+
+
+{-| -}
+formatStack : (List Float -> String) -> AxisAttribute
+formatStack v =
+    Attr.attr (\attrs -> { attrs | formatStack = Just v })
 
 
 {-| -}
@@ -1169,8 +1175,10 @@ globalStyles =
         [ H.text ("""
             /* Basics */
 
-            .ew-charts {
+            .ew-charts,
+            .ew-charts text {
                 font-family: var(--theme-font-text), sans-serif;
+                line-height: 0;
             }
 
             /* Prevent Tooltip Clipping */

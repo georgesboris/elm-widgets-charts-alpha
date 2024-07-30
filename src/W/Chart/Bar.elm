@@ -1,11 +1,9 @@
 module W.Chart.Bar exposing
     ( fromY, fromZ, fromYZ
     , margins
-    , showLabels, labelFormat, labelFormatWithList, labelsAsPercentages, labelsOutside
-    , labelForStack
-    , onClick, onMouseEnter, onMouseLeave
+    , showLabels, labelFormat, labelFormatWithList, labelsAsPercentages
+    , onClick, onMouseEnter, onMouseLeave, AxisDatum(..)
     , Attribute
-    , AxisDatum(..)
     )
 
 {-|
@@ -13,9 +11,8 @@ module W.Chart.Bar exposing
 @docs fromY, fromZ, fromYZ
 
 @docs margins
-@docs showLabels, labelFormat, labelFormatWithList, labelsAsPercentages, labelsOutside
-@docs labelForStack
-@docs onClick, onMouseEnter, onMouseLeave, EventTarget
+@docs showLabels, labelFormat, labelFormatWithList, labelsAsPercentages
+@docs onClick, onMouseEnter, onMouseLeave, AxisDatum
 @docs Attribute
 
 -}
@@ -55,9 +52,7 @@ type alias Attributes a msg =
     { outerMargin : Float
     , innerMargin : Float
     , labels : Bool
-    , labelPosition : W.Chart.Widget.Label.Attribute
     , labelFormat : W.Chart.Widget.Label.Attribute
-    , stackLabel : Maybe (List ( a, Float ) -> String)
     , onClick : Maybe (a -> msg)
     , onMouseEnter : Maybe (a -> msg)
     , onMouseLeave : Maybe (a -> msg)
@@ -69,9 +64,7 @@ defaultAttrs =
     { innerMargin = 0.2
     , outerMargin = 0.5
     , labels = False
-    , labelPosition = W.Chart.Widget.Label.inside
     , labelFormat = Attr.none
-    , stackLabel = Nothing
     , onClick = Nothing
     , onMouseEnter = Nothing
     , onMouseLeave = Nothing
@@ -91,12 +84,6 @@ showLabels =
 
 
 {-| -}
-labelsOutside : Attribute a msg
-labelsOutside =
-    Attr.attr (\attr -> { attr | labelPosition = Attr.none })
-
-
-{-| -}
 labelFormat : (Float -> String) -> Attribute a msg
 labelFormat fn =
     Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.format fn })
@@ -112,12 +99,6 @@ labelFormatWithList fn =
 labelsAsPercentages : Attribute a msg
 labelsAsPercentages =
     Attr.attr (\attr -> { attr | labelFormat = W.Chart.Widget.Label.formatAsPercentage })
-
-
-{-| -}
-labelForStack : (List ( a, Float ) -> String) -> Attribute a msg
-labelForStack fn =
-    Attr.attr (\attr -> { attr | stackLabel = Just fn })
 
 
 {-| -}
@@ -170,9 +151,7 @@ fromY =
                                     toBinScale attrs ctx yCount
                             in
                             W.Chart.Widget.Label.viewBinsList
-                                [ attrs.labelPosition
-                                , attrs.labelFormat
-                                ]
+                                [ attrs.labelFormat ]
                                 { binScale = binScale
                                 , ctx = ctx
                                 , points =
@@ -230,9 +209,7 @@ fromZ =
                                     toBinScale attrs ctx zCount
                             in
                             W.Chart.Widget.Label.viewBinsList
-                                [ attrs.labelPosition
-                                , attrs.labelFormat
-                                ]
+                                [ attrs.labelFormat ]
                                 { binScale = binScale
                                 , ctx = ctx
                                 , points =
@@ -303,9 +280,7 @@ fromYZ =
                                     toBinScale attrs ctx (yCount + zCount)
                             in
                             W.Chart.Widget.Label.viewBinsList
-                                [ attrs.labelPosition
-                                , attrs.labelFormat
-                                ]
+                                [ attrs.labelFormat ]
                                 { binScale = binScale
                                 , ctx = ctx
                                 , points =

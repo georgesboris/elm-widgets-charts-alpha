@@ -1,12 +1,16 @@
 module W.Chart.Widget.Label exposing
     ( view, viewList, viewBinsList
-    , format, formatAsPercentage, formatWithList, inside, Attribute
+    , format, formatAsPercentage, formatWithList, inside, centered
+    , formatStack
+    , Attribute
     )
 
 {-|
 
 @docs view, viewList, viewBinsList
-@docs format, formatAsPercentage, formatWithList, inside, Attribute
+@docs format, formatAsPercentage, formatWithList, inside, centered
+@docs formatStack
+@docs Attribute
 
 -}
 
@@ -36,6 +40,7 @@ type alias Attribute =
 type alias Attributes =
     { position : Position
     , format : Maybe (List Float -> Float -> String)
+    , formatStack : Maybe (List Float -> String)
     }
 
 
@@ -43,18 +48,32 @@ defaultAttrs : Attributes
 defaultAttrs =
     { position = Outside
     , format = Nothing
+    , formatStack = Nothing
     }
 
 
 type Position
     = Outside
     | Inside
+    | Center
 
 
 {-| -}
 inside : Attribute
 inside =
     Attr.attr (\attr -> { attr | position = Inside })
+
+
+{-| -}
+centered : Attribute
+centered =
+    Attr.attr (\attr -> { attr | position = Center })
+
+
+{-| -}
+formatStack : (List Float -> String) -> Attribute
+formatStack fn =
+    Attr.attr (\attr -> { attr | formatStack = Just fn })
 
 
 {-| -}
@@ -91,28 +110,14 @@ view :
     , ctx : W.Chart.Context x y z
     , color : String
     , label : String
-    , alignCenter : Bool
-    , alignBottom : Bool
     }
     -> SC.Svg msg
 view props =
-    let
-        y : Float
-        y =
-            if props.alignCenter then
-                props.y - props.ctx.fontSize.lg * 0.5
-
-            else if props.alignBottom then
-                props.y + props.ctx.fontSize.lg * 1.1
-
-            else
-                props.y - props.ctx.fontSize.lg * 0.5
-    in
     S.g
         []
         [ S.text_
             [ SAP.x props.x
-            , SAP.y y
+            , SAP.y props.y
             , SAP.strokeWidth 6
             , Svg.Attributes.fill props.color
             , Svg.Attributes.stroke props.color
@@ -123,7 +128,7 @@ view props =
             ]
         , S.text_
             [ SAP.x props.x
-            , SAP.y y
+            , SAP.y props.y
             , SAP.strokeWidth 4
             , Svg.Attributes.fill Theme.baseForeground
             , Svg.Attributes.stroke Theme.baseBackground
@@ -139,11 +144,15 @@ view props =
 {-| -}
 viewList :
     List Attribute
-    -> { ctx : W.Chart.Context x y z, points : List ( W.Chart.RenderDatum, List W.Chart.RenderDatum ) }
+    ->
+        { ctx : W.Chart.Context x y z
+        , axisAttrs : W.Chart.Internal.RenderAxisYZ a
+        , points : List ( W.Chart.RenderDatum, List W.Chart.RenderDatum )
+        }
     -> SC.Svg msg
 viewList =
     Attr.withAttrs defaultAttrs
-        (\attrs props ->
+        (\attrs_ props ->
             let
                 xMaxLabels : Int
                 xMaxLabels =
@@ -160,6 +169,18 @@ viewList =
 
                     else
                         length // xMaxLabels
+
+                position : Position
+                position =
+                    if props.axisAttrs.isStacked then
+                        Inside
+
+                    else
+                        attrs_.position
+
+                attrs : Attributes
+                attrs =
+                    { attrs_ | position = position }
             in
             props.points
                 |> List.indexedMap
@@ -170,20 +191,36 @@ viewList =
                                 modBy step index == 0
                         in
                         if visibleStep then
-                            ys
-                                |> List.map
-                                    (\y ->
-                                        let
-                                            visibleHeight : Bool
-                                            visibleHeight =
-                                                abs (y.valueEnd - y.valueStart) >= props.ctx.fontSize.lg
-                                        in
-                                        if visibleHeight then
-                                            viewPoint attrs props.ctx x.valueScaled ys y False
+                            viewStackPoint
+                                { attrs = attrs
+                                , ctx = props.ctx
+                                , axisAttrs = props.axisAttrs
+                                , x = x.valueScaled
+                                , pointList = ys
+                                , format = attrs.formatStack
+                                , isStacked = props.axisAttrs.isStacked
+                                }
+                                :: (ys
+                                        |> List.map
+                                            (\y ->
+                                                let
+                                                    visibleHeight : Bool
+                                                    visibleHeight =
+                                                        abs (y.valueEnd - y.valueStart) >= props.ctx.fontSize.lg
+                                                in
+                                                if visibleHeight then
+                                                    viewPoint
+                                                        { attrs = attrs
+                                                        , ctx = props.ctx
+                                                        , x = x.valueScaled
+                                                        , pointList = ys
+                                                        , point = y
+                                                        }
 
-                                        else
-                                            H.text ""
-                                    )
+                                                else
+                                                    H.text ""
+                                            )
+                                   )
 
                         else
                             []
@@ -216,18 +253,18 @@ viewBinsList =
                         viewBinsListPoint attrs
                             { binScale = props.binScale
                             , ctx = props.ctx
+                            , axisAttrs = props.ctx.y
                             , x = point.x
                             , yz = point.y
                             , offset = 0
-                            , isStacked = props.ctx.y.isStacked
                             }
                             ++ viewBinsListPoint attrs
                                 { binScale = props.binScale
                                 , ctx = props.ctx
+                                , axisAttrs = props.ctx.z
                                 , x = point.x
                                 , yz = point.z
                                 , offset = yCount
-                                , isStacked = props.ctx.z.isStacked
                                 }
                     )
                 |> S.g []
@@ -239,10 +276,10 @@ viewBinsListPoint :
     ->
         { binScale : Scale.BandScale Int
         , ctx : W.Chart.Context x y z
+        , axisAttrs : W.Chart.Internal.RenderAxisYZ a
         , x : W.Chart.Point x
         , yz : List (W.Chart.Point a)
         , offset : Int
-        , isStacked : Bool
         }
     -> List (SC.Svg msg)
 viewBinsListPoint attrs props =
@@ -250,31 +287,60 @@ viewBinsListPoint attrs props =
         yzPoints : List W.Chart.RenderDatum
         yzPoints =
             List.map .render props.yz
+
+        xStart : Float
+        xStart =
+            props.x.render.valueStart
+                + (Scale.bandwidth props.binScale * 0.5)
+                + Scale.convert props.binScale props.offset
     in
-    props.yz
-        |> List.indexedMap
-            (\index point ->
-                let
-                    x : Float
-                    x =
-                        if props.isStacked then
-                            props.x.render.valueStart
-                                + (Scale.bandwidth props.binScale * 0.5)
-                                + Scale.convert props.binScale props.offset
+    viewStackPoint
+        { attrs = attrs
+        , ctx = props.ctx
+        , axisAttrs = props.axisAttrs
+        , x = xStart
+        , pointList = List.map (\yz -> yz.render) props.yz
+        , format = props.axisAttrs.formatStack
+        , isStacked = props.axisAttrs.isStacked
+        }
+        :: (props.yz
+                |> List.indexedMap
+                    (\index point ->
+                        let
+                            visibleHeight : Bool
+                            visibleHeight =
+                                abs (point.render.valueEnd - point.render.valueStart) >= props.ctx.fontSize.lg
+
+                            position : Position
+                            position =
+                                if props.axisAttrs.isStacked then
+                                    Center
+
+                                else
+                                    attrs.position
+                        in
+                        if visibleHeight then
+                            let
+                                x : Float
+                                x =
+                                    if props.axisAttrs.isStacked then
+                                        xStart
+
+                                    else
+                                        xStart + Scale.convert props.binScale index
+                            in
+                            viewPoint
+                                { attrs = { attrs | position = position }
+                                , ctx = props.ctx
+                                , x = x
+                                , pointList = yzPoints
+                                , point = point.render
+                                }
 
                         else
-                            props.x.render.valueStart
-                                + (Scale.bandwidth props.binScale * 0.5)
-                                + Scale.convert props.binScale (index + props.offset)
-                in
-                viewPoint
-                    attrs
-                    props.ctx
-                    x
-                    yzPoints
-                    point.render
-                    props.isStacked
-            )
+                            H.text ""
+                    )
+           )
 
 
 yBinCount : W.Chart.Internal.RenderAxisYZ y -> List (W.Chart.Point y) -> Int
@@ -291,37 +357,112 @@ yBinCount axis yList =
                 length
 
 
-viewPoint :
-    Attributes
-    -> W.Chart.Context x y z
-    -> Float
-    -> List W.Chart.RenderDatum
-    -> W.Chart.RenderDatum
-    -> Bool
+viewStackPoint :
+    { attrs : Attributes
+    , ctx : W.Chart.Context x y z
+    , axisAttrs : W.Chart.Internal.RenderAxisYZ a
+    , x : Float
+    , pointList : List W.Chart.RenderDatum
+    , format : Maybe (List Float -> String)
+    , isStacked : Bool
+    }
     -> SC.Svg msg
-viewPoint attrs ctx x pointList point isStacked =
-    if point.value == 0.0 then
+viewStackPoint props =
+    case ( props.isStacked, props.format ) of
+        ( True, Just format_ ) ->
+            let
+                attrs : Attributes
+                attrs =
+                    props.attrs
+
+                yString : String
+                yString =
+                    format_ (List.map .value props.pointList)
+
+                yStart : Float
+                yStart =
+                    List.minimum (List.map .valueStart props.pointList)
+                        |> Maybe.withDefault 0.0
+
+                yEnd : Float
+                yEnd =
+                    List.maximum (List.map .valueEnd props.pointList)
+                        |> Maybe.withDefault 0.0
+
+                yScaled : Float
+                yScaled =
+                    if yStart < props.axisAttrs.zero || yEnd == props.axisAttrs.zero then
+                        yStart
+
+                    else
+                        yEnd
+
+                yValue : Float
+                yValue =
+                    props.axisAttrs.zero - yScaled
+            in
+            viewPoint
+                { attrs = { attrs | position = Outside }
+                , ctx = props.ctx
+                , x = props.x
+                , pointList = props.pointList
+                , point =
+                    { color = "#fff"
+                    , label = ""
+                    , value = yValue
+                    , valueString = yString
+                    , valueScaled = yScaled
+                    , valueStart = yStart
+                    , valueEnd = yEnd
+                    , isDefault = False
+                    }
+                }
+
+        _ ->
+            H.text ""
+
+
+viewPoint :
+    { attrs : Attributes
+    , ctx : W.Chart.Context x y z
+    , x : Float
+    , pointList : List W.Chart.RenderDatum
+    , point : W.Chart.RenderDatum
+    }
+    -> SC.Svg msg
+viewPoint props =
+    if props.point.value == 0.0 then
         H.text ""
 
     else
         let
-            position : Position
-            position =
-                if isStacked then
-                    Inside
+            y : Float
+            y =
+                case props.attrs.position of
+                    Inside ->
+                        if props.point.value >= 0.0 then
+                            props.point.valueScaled + props.ctx.fontSize.lg * 1.3
 
-                else
-                    attrs.position
+                        else
+                            props.point.valueScaled - props.ctx.fontSize.lg * 0.6
+
+                    Outside ->
+                        if props.point.value < 0.0 then
+                            props.point.valueScaled + props.ctx.fontSize.lg * 1.3
+
+                        else
+                            props.point.valueScaled - props.ctx.fontSize.lg * 0.6
+
+                    Center ->
+                        (props.point.valueStart + ((props.point.valueEnd - props.point.valueStart) * 0.5)) + props.ctx.fontSize.lg * 0.4
         in
         view
-            { ctx = ctx
-            , x = x
-            , y = point.valueScaled
-            , color = point.color
-            , alignCenter = False
-            , alignBottom = (point.value > 0.0 && position == Inside) || (point.value <= 0.0 && position == Outside)
+            { ctx = props.ctx
+            , x = props.x
+            , y = y
+            , color = props.point.color
             , label =
-                attrs.format
-                    |> Maybe.map (\fn -> fn (List.map .value pointList) point.value)
-                    |> Maybe.withDefault point.valueString
+                props.attrs.format
+                    |> Maybe.map (\fn -> fn (List.map .value props.pointList) props.point.value)
+                    |> Maybe.withDefault props.point.valueString
             }

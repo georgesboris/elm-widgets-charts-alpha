@@ -46,16 +46,21 @@ fromY =
                 |> W.Chart.Widget.withLabels
                     (\ctx ->
                         if attrs.labels then
-                            W.Chart.Widget.Label.viewList [ attrs.labelFormat ]
-                                { ctx = ctx
-                                , points =
-                                    ctx.points.byX
-                                        |> Dict.values
-                                        |> List.map
-                                            (\data ->
-                                                ( data.x.render, data.yRender )
-                                            )
-                                }
+                            S.g
+                                []
+                                [ W.Chart.Widget.Label.viewList
+                                    [ attrs.labelFormat ]
+                                    { ctx = ctx
+                                    , axisAttrs = ctx.y
+                                    , points =
+                                        ctx.points.byX
+                                            |> Dict.values
+                                            |> List.map
+                                                (\data ->
+                                                    ( data.x.render, data.yRender )
+                                                )
+                                    }
+                                ]
 
                         else
                             H.text ""
@@ -73,8 +78,10 @@ fromZ =
                 |> W.Chart.Widget.withLabels
                     (\ctx ->
                         if attrs.labels then
-                            W.Chart.Widget.Label.viewList [ attrs.labelFormat ]
+                            W.Chart.Widget.Label.viewList
+                                [ attrs.labelFormat ]
                                 { ctx = ctx
+                                , axisAttrs = ctx.z
                                 , points =
                                     ctx.points.byX
                                         |> Dict.values

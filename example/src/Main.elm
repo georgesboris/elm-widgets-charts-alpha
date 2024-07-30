@@ -74,13 +74,21 @@ main =
                                 , W.Chart.axisLabel "X Axis"
                                 ]
                                 { data =
-                                    List.range 1 11
+                                    List.range 1 5
                                         |> List.map (\i -> Date.fromOrdinalDate 2023 i)
                                 , toLabel = Date.format "MMM d"
                                 }
                         , y =
                             W.Chart.axisList
-                                [ W.Chart.axisLabel "Y Axis" ]
+                                [ W.Chart.axisLabel "Y Axis"
+                                , W.Chart.stacked
+                                , W.Chart.formatStack
+                                    (\xs ->
+                                        xs
+                                        |> List.sum
+                                        |> formatFloat
+                                    )
+                                ]
                                 { data = List.range 0 3
                                 , toLabel = String.fromInt
                                 , toValue = toValue (\x -> Basics.sin x)
@@ -88,7 +96,15 @@ main =
                                 }
                         , z =
                             W.Chart.axisList
-                                [ W.Chart.axisLabel "Z Axis" ]
+                                [ W.Chart.axisLabel "Z Axis"
+                                , W.Chart.stacked
+                                , W.Chart.formatStack
+                                    (\xs ->
+                                        xs
+                                        |> List.sum
+                                        |> formatFloat
+                                    )
+                                ]
                                 { data = List.range 4 6
                                 , toLabel = String.fromInt
                                 , toValue = toValue Basics.cos
@@ -101,8 +117,7 @@ main =
                             , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
                             ]
                         |> W.Chart.view
-                            [ W.Chart.Line.fromY []
-                            , W.Chart.Bar.fromZ [ W.Chart.Bar.showLabels ]
+                            [ W.Chart.Bar.fromYZ [ W.Chart.Bar.showLabels ]
                             , W.Chart.Tooltip.fromYZ
                                 [ W.Chart.Tooltip.yAxisLabel [ H.text "YYY" ]
                                 , W.Chart.Tooltip.headerValue
@@ -236,10 +251,14 @@ baseLocale : FormatNumber.Locales.Locale
 baseLocale =
     FormatNumber.Locales.base
 
+formatFloat : Float -> String
+formatFloat = 
+    FormatNumber.format { baseLocale | decimals = FormatNumber.Locales.Exact 2 }
+
 pctString : Float -> String
 pctString v =
     (v * 100)
-    |> FormatNumber.format { baseLocale | decimals = FormatNumber.Locales.Exact 2, positivePrefix = "+" }
+    |> formatFloat
     |> (\x -> x ++ "%")
 
 

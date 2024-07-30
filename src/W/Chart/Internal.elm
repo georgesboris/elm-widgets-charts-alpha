@@ -141,6 +141,7 @@ type alias RenderAxisYZ a =
     , isDistribution : Bool
     , ticks : Int
     , format : Float -> String
+    , formatStack : Maybe (List Float -> String)
     , showAxis : Bool
     , showGrid : Bool
     }
@@ -437,6 +438,7 @@ toRenderData cfg xData =
                 , ticks = cfg.attrs.yAxis.ticks
                 , label = cfg.attrs.yAxis.label
                 , format = cfg.attrs.yAxis.format
+                , formatStack = cfg.attrs.yAxis.formatStack
                 , showAxis = cfg.attrs.yAxis.showAxis
                 , showGrid = cfg.attrs.yAxis.showGrid
                 }
@@ -449,6 +451,7 @@ toRenderData cfg xData =
                 , ticks = cfg.attrs.yAxis.ticks
                 , label = cfg.attrs.zAxis.label
                 , format = cfg.attrs.zAxis.format
+                , formatStack = cfg.attrs.zAxis.formatStack
                 , showAxis = cfg.attrs.zAxis.showAxis
                 , showGrid = cfg.attrs.zAxis.showGrid
                 }
@@ -726,6 +729,7 @@ type alias AxisAttributes =
     { label : Maybe String
     , defaultValue : Float
     , format : Float -> String
+    , formatStack : Maybe (List Float -> String)
     , tooltipFormat : Maybe (Float -> String)
     , safety : Float
     , ticks : Int
@@ -767,6 +771,7 @@ defaultAxisAttributes =
     { label = Nothing
     , defaultValue = 0.0
     , format = formatFloat
+    , formatStack = Nothing
     , tooltipFormat = Nothing
     , safety = 0.1
     , ticks = 5
