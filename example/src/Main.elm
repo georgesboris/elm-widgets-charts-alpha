@@ -117,7 +117,7 @@ main =
                             , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
                             ]
                         |> W.Chart.view
-                            [ W.Chart.Bar.fromYZ [ W.Chart.Bar.showLabels ]
+                            [ W.Chart.Line.fromY [ W.Chart.Line.showLabels ]
                             , W.Chart.Tooltip.fromYZ
                                 [ W.Chart.Tooltip.yAxisLabel [ H.text "YYY" ]
                                 , W.Chart.Tooltip.headerValue

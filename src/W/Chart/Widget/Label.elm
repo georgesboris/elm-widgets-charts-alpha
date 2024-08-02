@@ -197,8 +197,6 @@ viewList =
                                 , axisAttrs = props.axisAttrs
                                 , x = x.valueScaled
                                 , pointList = ys
-                                , format = attrs.formatStack
-                                , isStacked = props.axisAttrs.isStacked
                                 }
                                 :: (ys
                                         |> List.map
@@ -300,8 +298,6 @@ viewBinsListPoint attrs props =
         , axisAttrs = props.axisAttrs
         , x = xStart
         , pointList = List.map (\yz -> yz.render) props.yz
-        , format = props.axisAttrs.formatStack
-        , isStacked = props.axisAttrs.isStacked
         }
         :: (props.yz
                 |> List.indexedMap
@@ -363,12 +359,10 @@ viewStackPoint :
     , axisAttrs : W.Chart.Internal.RenderAxisYZ a
     , x : Float
     , pointList : List W.Chart.RenderDatum
-    , format : Maybe (List Float -> String)
-    , isStacked : Bool
     }
     -> SC.Svg msg
 viewStackPoint props =
-    case ( props.isStacked, props.format ) of
+    case ( props.axisAttrs.isStacked, props.axisAttrs.formatStack ) of
         ( True, Just format_ ) ->
             let
                 attrs : Attributes
