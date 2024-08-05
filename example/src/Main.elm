@@ -81,7 +81,7 @@ main =
                         , y =
                             W.Chart.axisList
                                 [ W.Chart.axisLabel "Y Axis"
-                                , W.Chart.stacked
+                                , W.Chart.distribution
                                 , W.Chart.formatStack
                                     (\xs ->
                                         xs
@@ -117,7 +117,7 @@ main =
                             , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
                             ]
                         |> W.Chart.view
-                            [ W.Chart.Line.fromY [ W.Chart.Line.showLabels ]
+                            [ W.Chart.Line.fromY [ W.Chart.Line.showLabels, W.Chart.Line.labelsAsPercentages ]
                             , W.Chart.Tooltip.fromYZ
                                 [ W.Chart.Tooltip.yAxisLabel [ H.text "YYY" ]
                                 , W.Chart.Tooltip.headerValue

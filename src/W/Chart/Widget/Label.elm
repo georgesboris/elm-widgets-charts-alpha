@@ -91,7 +91,23 @@ formatWithList fn =
 {-| -}
 formatAsPercentage : Attribute
 formatAsPercentage =
-    Attr.attr (\attr -> { attr | format = Just (\xs x -> toPct (x / List.sum xs)) })
+    Attr.attr
+        (\attr ->
+            { attr
+                | format =
+                    Just
+                        (\xs ->
+                            let
+                                total : Float
+                                total =
+                                    xs
+                                        |> List.map Basics.abs
+                                        |> List.sum
+                            in
+                            \x -> toPct (Basics.abs x / total)
+                        )
+            }
+        )
 
 
 toPct : Float -> String
@@ -191,6 +207,21 @@ viewList =
                                 modBy step index == 0
                         in
                         if visibleStep then
+                            let
+                                formatPoint : W.Chart.RenderDatum -> String
+                                formatPoint =
+                                    attrs.format
+                                        |> Maybe.map
+                                            (\fn_ ->
+                                                let
+                                                    fn : Float -> String
+                                                    fn =
+                                                        fn_ (List.map .value ys)
+                                                in
+                                                \point -> fn point.value
+                                            )
+                                        |> Maybe.withDefault .valueString
+                            in
                             viewStackPoint
                                 { attrs = attrs
                                 , ctx = props.ctx
@@ -213,6 +244,7 @@ viewList =
                                                         , x = x.valueScaled
                                                         , pointList = ys
                                                         , point = y
+                                                        , format = formatPoint
                                                         }
 
                                                 else
@@ -291,6 +323,20 @@ viewBinsListPoint attrs props =
             props.x.render.valueStart
                 + (Scale.bandwidth props.binScale * 0.5)
                 + Scale.convert props.binScale props.offset
+
+        formatPoint : W.Chart.RenderDatum -> String
+        formatPoint =
+            attrs.format
+                |> Maybe.map
+                    (\fn_ ->
+                        let
+                            fn : Float -> String
+                            fn =
+                                fn_ (List.map .value yzPoints)
+                        in
+                        \point -> fn point.value
+                    )
+                |> Maybe.withDefault .valueString
     in
     viewStackPoint
         { attrs = attrs
@@ -331,6 +377,7 @@ viewBinsListPoint attrs props =
                                 , x = x
                                 , pointList = yzPoints
                                 , point = point.render
+                                , format = formatPoint
                                 }
 
                         else
@@ -410,6 +457,7 @@ viewStackPoint props =
                     , valueEnd = yEnd
                     , isDefault = False
                     }
+                , format = .valueString
                 }
 
         _ ->
@@ -422,6 +470,7 @@ viewPoint :
     , x : Float
     , pointList : List W.Chart.RenderDatum
     , point : W.Chart.RenderDatum
+    , format : W.Chart.RenderDatum -> String
     }
     -> SC.Svg msg
 viewPoint props =
@@ -455,8 +504,5 @@ viewPoint props =
             , x = props.x
             , y = y
             , color = props.point.color
-            , label =
-                props.attrs.format
-                    |> Maybe.map (\fn -> fn (List.map .value props.pointList) props.point.value)
-                    |> Maybe.withDefault props.point.valueString
+            , label = props.format props.point
             }
