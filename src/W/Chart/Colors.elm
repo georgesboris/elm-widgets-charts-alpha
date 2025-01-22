@@ -131,7 +131,7 @@ mapWithColorsAndOffset offset (Palette paletteLength baseColor colors) fn xs =
 
 shades : Array.Array (Color -> String)
 shades =
-    Array.fromList [ .l60, .l40, .l70, .l50 ]
+    Array.fromList [ .l60, .l40, .l70, .l50, .l30 ]
 
 
 shadesLength : Int

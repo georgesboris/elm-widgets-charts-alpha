@@ -2,7 +2,6 @@ module Main exposing (main)
 
 import Html as H
 import Html.Attributes as HA
-import Theme
 import W.Chart
 import W.Chart.Colors
 import W.Container
@@ -19,61 +18,83 @@ main =
         , W.Styles.baseTheme
         , W.Chart.globalStyles
         , H.div
-            [ HA.style "gap" "16px"
-            , HA.style "padding" "16px"
-            , HA.style "background" "#eee"
-            , HA.style "display" "grid"
-            , HA.style "grid-template-columns" "repeat(2, minmax(0, 1fr))"
+            [ HA.style "padding" "16px"
+            , HA.style "background" "#999"
+            , HA.style "display" "flex"
+            , HA.style "flex-direction" "column"
             ]
-            [ viewPaletteList
-                [ ( "Mix A", W.Chart.Colors.mixA )
-                , ( "Mix B", W.Chart.Colors.mixB )
-                , ( "Mix C", W.Chart.Colors.mixC )
-                , ( "Mix D", W.Chart.Colors.mixD )
-                , ( "Mix E", W.Chart.Colors.mixE )
-                , ( "Mix Cool", W.Chart.Colors.mixCool )
-                , ( "Mix Warm", W.Chart.Colors.mixWarm )
-                ]
-            , Theme.provider Theme.darkTheme
-                []
-                [ viewPaletteList
-                    [ ( "Mix A", W.Chart.Colors.mixA )
-                    , ( "Mix B", W.Chart.Colors.mixB )
-                    , ( "Mix C", W.Chart.Colors.mixC )
-                    , ( "Mix D", W.Chart.Colors.mixD )
-                    , ( "Mix E", W.Chart.Colors.mixE )
-                    , ( "Mix Cool", W.Chart.Colors.mixCool )
-                    , ( "Mix Warm", W.Chart.Colors.mixWarm )
-                    ]
-                ]
-            , viewPaletteList
-                [ ( "Cool", W.Chart.Colors.cool )
-                , ( "Warm", W.Chart.Colors.warm )
-                , ( "Rainbow", W.Chart.Colors.rainbow )
-                , ( "Mix", W.Chart.Colors.mix )
-                , ( "Mix Alt", W.Chart.Colors.mixB )
-                ]
-            , viewPaletteList
-                [ ( "Rose", W.Chart.Colors.rose )
-                , ( "Red", W.Chart.Colors.red )
-                , ( "Orange", W.Chart.Colors.orange )
-                , ( "Amber", W.Chart.Colors.amber )
-                , ( "Yellow", W.Chart.Colors.yellow )
-                , ( "Lime", W.Chart.Colors.lime )
-                , ( "Green", W.Chart.Colors.green )
-                , ( "Emerald", W.Chart.Colors.emerald )
-                , ( "Teal", W.Chart.Colors.teal )
-                , ( "Cyan", W.Chart.Colors.cyan )
-                , ( "Sky", W.Chart.Colors.sky )
-                , ( "Blue", W.Chart.Colors.blue )
-                , ( "Indigo", W.Chart.Colors.indigo )
-                , ( "Violet", W.Chart.Colors.violet )
-                , ( "Purple", W.Chart.Colors.purple )
-                , ( "Pink", W.Chart.Colors.pink )
-                , ( "Gray", W.Chart.Colors.gray )
-                ]
-            ]
+            (List.range 0 8
+                |> W.Chart.Colors.mapWithColorsAndOffset 0
+                    W.Chart.Colors.mixA
+                    (\color _ ->
+                        H.div
+                            [ HA.style "width" "120px"
+                            , HA.style "height" "20px"
+                            , HA.style "background" color
+                            ]
+                            []
+                    )
+            )
         ]
+
+
+
+-- , H.div
+--     [ HA.style "gap" "16px"
+--     , HA.style "padding" "16px"
+--     , HA.style "background" "#eee"
+--     , HA.style "display" "grid"
+--     , HA.style "grid-template-columns" "repeat(2, minmax(0, 1fr))"
+--     ]
+--     [ viewPaletteList
+--         [ ( "Mix A", W.Chart.Colors.mixA )
+--         , ( "Mix B", W.Chart.Colors.mixB )
+--         , ( "Mix C", W.Chart.Colors.mixC )
+--         , ( "Mix D", W.Chart.Colors.mixD )
+--         , ( "Mix E", W.Chart.Colors.mixE )
+--         , ( "Mix Cool", W.Chart.Colors.mixCool )
+--         , ( "Mix Warm", W.Chart.Colors.mixWarm )
+--         ]
+--     , Theme.provider Theme.darkTheme
+--         []
+--         [ viewPaletteList
+--             [ ( "Mix A", W.Chart.Colors.mixA )
+--             , ( "Mix B", W.Chart.Colors.mixB )
+--             , ( "Mix C", W.Chart.Colors.mixC )
+--             , ( "Mix D", W.Chart.Colors.mixD )
+--             , ( "Mix E", W.Chart.Colors.mixE )
+--             , ( "Mix Cool", W.Chart.Colors.mixCool )
+--             , ( "Mix Warm", W.Chart.Colors.mixWarm )
+--             ]
+--         ]
+--     , viewPaletteList
+--         [ ( "Cool", W.Chart.Colors.cool )
+--         , ( "Warm", W.Chart.Colors.warm )
+--         , ( "Rainbow", W.Chart.Colors.rainbow )
+--         , ( "Mix", W.Chart.Colors.mix )
+--         , ( "Mix Alt", W.Chart.Colors.mixB )
+--         ]
+--     , viewPaletteList
+--         [ ( "Rose", W.Chart.Colors.rose )
+--         , ( "Red", W.Chart.Colors.red )
+--         , ( "Orange", W.Chart.Colors.orange )
+--         , ( "Amber", W.Chart.Colors.amber )
+--         , ( "Yellow", W.Chart.Colors.yellow )
+--         , ( "Lime", W.Chart.Colors.lime )
+--         , ( "Green", W.Chart.Colors.green )
+--         , ( "Emerald", W.Chart.Colors.emerald )
+--         , ( "Teal", W.Chart.Colors.teal )
+--         , ( "Cyan", W.Chart.Colors.cyan )
+--         , ( "Sky", W.Chart.Colors.sky )
+--         , ( "Blue", W.Chart.Colors.blue )
+--         , ( "Indigo", W.Chart.Colors.indigo )
+--         , ( "Violet", W.Chart.Colors.violet )
+--         , ( "Purple", W.Chart.Colors.purple )
+--         , ( "Pink", W.Chart.Colors.pink )
+--         , ( "Gray", W.Chart.Colors.gray )
+--         ]
+--     ]
+-- ]
 
 
 viewPaletteList : List ( String, W.Chart.Colors.Palette ) -> H.Html msg
