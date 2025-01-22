@@ -1,16 +1,45 @@
 module W.Chart.Colors exposing
-    ( mapWithColors, colorByIndex, Palette
-    , mix, mixB, rainbow, cool, warm
-    , amber, blue, cyan, emerald, gray, green, indigo, orange, pink, purple, red, rose, teal, violet, yellow
+    ( mapWithColors, mapWithColorsAndOffset, colorByIndex, Palette
+    , rainbow, cool, warm
+    , mixA, mixB, mixC, mixD, mixE, mixCool, mixWarm
+    , amber, blue, cyan, sky, emerald, gray, lime, green, indigo, orange, pink, purple, red, rose, teal, violet, yellow
     , toColors, toColorWithShades
+    , mix
     )
 
 {-| Accessible colors based on <https://www.s-ings.com/scratchpad/oklch-smooth/> .
 
-@docs mapWithColors, colorByIndex, Palette
-@docs mix, mixB, rainbow, cool, warm
-@docs amber, blue, cyan, emerald, gray, green, indigo, orange, pink, purple, red, rose, teal, violet, yellow
+
+# Using palettes
+
+@docs mapWithColors, mapWithColorsAndOffset, colorByIndex, Palette
+
+
+# Palettes
+
+
+## Basic
+
+@docs rainbow, cool, warm
+
+
+## Mixed
+
+@docs mixA, mixB, mixC, mixD, mixE, mixCool, mixWarm
+
+
+## Single Colors
+
+@docs amber, blue, cyan, sky, emerald, gray, lime, green, indigo, orange, pink, purple, red, rose, teal, violet, yellow
+
+
+# Palette Utilities
+
 @docs toColors, toColorWithShades
+
+Deprecated:
+
+@docs mix
 
 -}
 
@@ -37,6 +66,72 @@ fromList c cs =
 
 
 
+--
+
+
+{-| -}
+toColorWithShades : Palette -> Int -> List String
+toColorWithShades ((Palette length _ _) as palette) count =
+    List.range 0 ((length * count) - 1)
+        |> mapWithColorsAndOffset 0 palette (\c _ -> c)
+
+
+{-| -}
+mapWithColors : Palette -> (String -> a -> b) -> List a -> List b
+mapWithColors =
+    mapWithColorsAndOffset 0
+
+
+{-| -}
+mapWithColorsAndOffset : Int -> Palette -> (String -> a -> b) -> List a -> List b
+mapWithColorsAndOffset offset (Palette paletteLength baseColor colors) fn xs =
+    let
+        itemsLength : Int
+        itemsLength =
+            List.length xs
+    in
+    xs
+        |> List.indexedMap
+            (\index x ->
+                let
+                    shadeIndex : Int
+                    shadeIndex =
+                        modBy shadesLength index
+
+                    colorIndex : Int
+                    colorIndex =
+                        (index // (itemsLength // paletteLength))
+                            + offset
+                            |> modBy paletteLength
+
+                    color : Color
+                    color =
+                        colors
+                            |> Array.get colorIndex
+                            |> Maybe.withDefault baseColor
+
+                    shade : String
+                    shade =
+                        shades
+                            |> Array.get shadeIndex
+                            |> Maybe.withDefault .l60
+                            |> (|>) color
+                in
+                fn shade x
+            )
+
+
+shades : Array.Array (Color -> String)
+shades =
+    Array.fromList [ .l60, .l40, .l70, .l50 ]
+
+
+shadesLength : Int
+shadesLength =
+    Array.length shades
+
+
+
 -- Colors
 
 
@@ -44,13 +139,6 @@ fromList c cs =
 toColors : Palette -> List String
 toColors (Palette _ _ colors) =
     List.map baseShade (Array.toList colors)
-
-
-{-| -}
-toColorWithShades : Palette -> Int -> List String
-toColorWithShades ((Palette length _ _) as palette) count =
-    List.range 0 ((length * count) - 1)
-        |> mapWithColors palette (\c _ -> c)
 
 
 {-| -}
@@ -85,59 +173,6 @@ colorByIndex (Palette paletteLength baseColor colors) index =
 
         Nothing ->
             baseShade baseColor
-
-
-{-| -}
-mapWithColors : Palette -> (String -> a -> b) -> List a -> List b
-mapWithColors (Palette paletteLength baseColor colors) fn xs =
-    let
-        itemsLength : Int
-        itemsLength =
-            List.length xs
-
-        ( shadeLength, shadeArray ) =
-            case (itemsLength - 1) // paletteLength of
-                0 ->
-                    ( 1, shades1 )
-
-                1 ->
-                    ( 2, shades2 )
-
-                2 ->
-                    ( 3, shades3 )
-
-                _ ->
-                    ( 4, shades4 )
-    in
-    List.indexedMap
-        (\index x ->
-            let
-                shadeIndex : Int
-                shadeIndex =
-                    modBy shadeLength index
-
-                colorIndex : Int
-                colorIndex =
-                    modBy paletteLength (index // shadeLength)
-
-                color : Color
-                color =
-                    colors
-                        |> Array.get (modBy paletteLength colorIndex)
-                        |> Maybe.withDefault baseColor
-
-                shade : String
-                shade =
-                    case Array.get shadeIndex shadeArray of
-                        Just colorToShade ->
-                            colorToShade color
-
-                        Nothing ->
-                            baseShade baseColor
-            in
-            fn shade x
-        )
-        xs
 
 
 
@@ -175,6 +210,12 @@ yellow =
 
 
 {-| -}
+lime : Palette
+lime =
+    singleton colorLime
+
+
+{-| -}
 green : Palette
 green =
     singleton colorGreen
@@ -196,6 +237,12 @@ teal =
 cyan : Palette
 cyan =
     singleton colorCyan
+
+
+{-| -}
+sky : Palette
+sky =
+    singleton colorSky
 
 
 {-| -}
@@ -244,19 +291,32 @@ warm =
         , colorRose
         , colorPink
         , colorPurple
+        , colorViolet
         ]
+
+
+{-| -}
+mixCool : Palette
+mixCool =
+    fromColorSets2 blues greens
+
+
+{-| -}
+mixWarm : Palette
+mixWarm =
+    fromColorSets3 reds yellows purples
 
 
 {-| -}
 cool : Palette
 cool =
-    fromList colorViolet
-        [ colorIndigo
-        , colorBlue
+    fromList colorIndigo
+        [ colorBlue
         , colorCyan
         , colorTeal
         , colorEmerald
         , colorGreen
+        , colorLime
         ]
 
 
@@ -269,10 +329,12 @@ rainbow =
         , colorOrange
         , colorAmber
         , colorYellow
+        , colorLime
         , colorGreen
         , colorEmerald
         , colorTeal
         , colorCyan
+        , colorSky
         , colorBlue
         , colorIndigo
         , colorViolet
@@ -281,43 +343,126 @@ rainbow =
         ]
 
 
+type alias ColorSet =
+    ( Color, List Color )
+
+
+reds : ColorSet
+reds =
+    ( colorPink
+    , [ colorRose
+      , colorRed
+      ]
+    )
+
+
+yellows : ColorSet
+yellows =
+    ( colorOrange
+    , [ colorAmber
+      , colorYellow
+      ]
+    )
+
+
+blues : ColorSet
+blues =
+    ( colorSky
+    , [ colorBlue
+      , colorCyan
+      , colorTeal
+      , colorIndigo
+      ]
+    )
+
+
+greens : ColorSet
+greens =
+    ( colorEmerald
+    , [ colorGreen
+      , colorLime
+      ]
+    )
+
+
+purples : ColorSet
+purples =
+    ( colorViolet
+    , [ colorPurple
+      ]
+    )
+
+
+fromColorSets2 : ColorSet -> ColorSet -> Palette
+fromColorSets2 ( xh, xs ) ( yh, ys ) =
+    List.map2 (\x y -> [ y, x ]) xs (yh :: ys)
+        |> List.concat
+        |> fromList xh
+
+
+fromColorSets3 : ColorSet -> ColorSet -> ColorSet -> Palette
+fromColorSets3 ( xh, xs ) ( yh, ys ) ( zh, zs ) =
+    List.map3 (\x y z -> [ y, z, x ]) xs (yh :: ys) (zh :: zs)
+        |> List.concat
+        |> fromList xh
+
+
+fromColorSets5 : ColorSet -> ColorSet -> ColorSet -> ColorSet -> ColorSet -> Palette
+fromColorSets5 ( xh, xs ) ( yh, ys ) ( zh, zs ) ( kh, ks ) ( wh, ws ) =
+    List.map5 (\x y z k w -> [ y, z, k, w, x ]) xs (yh :: ys) (zh :: zs) (kh :: ks) (wh :: ws)
+        |> List.concat
+        |> fromList xh
+
+
 {-| -}
-mix : Palette
-mix =
-    fromList colorRose
-        [ colorBlue
-        , colorPurple
-        , colorAmber
-        , colorTeal
-        , colorPink
-        , colorOrange
-        , colorViolet
-        , colorCyan
-        , colorGreen
-        , colorRed
-        , colorYellow
-        , colorIndigo
-        , colorEmerald
-        ]
+mixA : Palette
+mixA =
+    fromColorSets5 reds yellows blues greens purples
 
 
 {-| -}
 mixB : Palette
 mixB =
-    fromList colorEmerald
-        [ colorAmber
-        , colorRose
-        , colorTeal
-        , colorBlue
-        , colorViolet
-        , colorRed
-        , colorIndigo
-        , colorPurple
+    fromColorSets5 yellows greens purples reds blues
+
+
+{-| -}
+mixC : Palette
+mixC =
+    fromColorSets5 blues reds purples greens yellows
+
+
+{-| -}
+mixD : Palette
+mixD =
+    fromColorSets5 greens yellows purples reds blues
+
+
+{-| -}
+mixE : Palette
+mixE =
+    fromColorSets5 purples yellows blues reds greens
+
+
+{-| -}
+mix : Palette
+mix =
+    fromList colorIndigo
+        [ colorLime
         , colorOrange
-        , colorCyan
-        , colorYellow
         , colorPink
+        , colorTeal
+        , colorAmber
+        , colorCyan
         , colorGreen
+        , colorRose
+        , colorViolet
+        , colorEmerald
+        , colorPurple
+        , colorRed
+        , colorSky
+        , colorYellow
+        , colorBlue
         ]
 
 
@@ -395,6 +540,20 @@ colorYellow =
     }
 
 
+colorLime : Color
+colorLime =
+    { l10 = "#eef2d4"
+    , l20 = "#e3ed9f"
+    , l30 = "#d4e360"
+    , l40 = "#c1d126"
+    , l50 = "#aab900"
+    , l60 = "#8e9b00"
+    , l70 = "#6f7900"
+    , l80 = "#4f5600"
+    , l90 = "#2d3100"
+    }
+
+
 colorGreen : Color
 colorGreen =
     { l10 = "#e1f5d8"
@@ -448,6 +607,20 @@ colorCyan =
     , l70 = "#0a7a80"
     , l80 = "#05595e"
     , l90 = "#003538"
+    }
+
+
+colorSky : Color
+colorSky =
+    { l10 = "#daf4ff"
+    , l20 = "#b9eafe"
+    , l30 = "#84dcfe"
+    , l40 = "#4dcbf6"
+    , l50 = "#09b5e3"
+    , l60 = "#069ac2"
+    , l70 = "#077a9b"
+    , l80 = "#065871"
+    , l90 = "#003344"
     }
 
 
