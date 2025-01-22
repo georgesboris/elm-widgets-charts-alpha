@@ -98,9 +98,17 @@ mapWithColorsAndOffset offset (Palette paletteLength baseColor colors) fn xs =
                     shadeIndex =
                         modBy shadesLength index
 
+                    indexMod : Int
+                    indexMod =
+                        if itemsLength < paletteLength then
+                            index
+
+                        else
+                            index // (itemsLength // paletteLength)
+
                     colorIndex : Int
                     colorIndex =
-                        (index // (itemsLength // paletteLength))
+                        indexMod
                             + offset
                             |> modBy paletteLength
 
