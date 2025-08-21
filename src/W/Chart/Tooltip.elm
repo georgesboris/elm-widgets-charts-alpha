@@ -20,13 +20,14 @@ import Html.Attributes as HA
 import Scale
 import Svg
 import Svg.Attributes
-import Theme
 import TypedSvg.Attributes as SA
 import TypedSvg.Attributes.InPx as SAP
 import TypedSvg.Core as SC
 import W.Chart
 import W.Chart.Internal
 import W.Chart.Widget
+import W.Theme
+import W.Theme.Color
 
 
 {-| -}
@@ -385,16 +386,17 @@ view ctx coords children =
             , HA.style "height" (String.fromFloat wrapperHeight ++ "px")
             ]
             [ H.div
-                [ HA.class "ew-bg-base-bg ew-text-base-fg"
-                , HA.class "ew-border ew-border-solid"
-                , HA.class "ew-rounded ew-shadow"
-                , Theme.styles
-                    [ ( "border-color", Theme.baseForegroundWithAlpha 0.1 )
+                [ HA.class "w/base"
+                , HA.class "w--bg w--text-default w--text-subtle"
+                , HA.class "w--border w--border-solid"
+                , HA.class "w--rounded w--shadow-shadow w--shadow"
+                , W.Theme.styleList
+                    [ ( "border-color", W.Theme.Color.tintSubtle )
                     ]
                 ]
                 [ H.div
                     [ HA.style "background" "rgba(0,0,0,0.2)"
-                    , HA.class "ew-rounded"
+                    , HA.class "w--rounded"
                     ]
                     children
                 ]

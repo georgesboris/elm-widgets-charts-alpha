@@ -18,7 +18,6 @@ import Attr
 import Html as H
 import Scale
 import Svg.Attributes
-import Theme
 import TypedSvg as S
 import TypedSvg.Attributes as SA
 import TypedSvg.Attributes.InPx as SAP
@@ -26,6 +25,7 @@ import TypedSvg.Core as SC
 import TypedSvg.Types as ST
 import W.Chart
 import W.Chart.Internal
+import W.Theme.Color
 
 
 
@@ -129,31 +129,17 @@ view :
     }
     -> SC.Svg msg
 view props =
-    S.g
-        []
-        [ S.text_
-            [ SAP.x props.x
-            , SAP.y props.y
-            , SAP.strokeWidth 6
-            , Svg.Attributes.fill props.color
-            , Svg.Attributes.stroke props.color
-            , SAP.fontSize props.ctx.fontSize.lg
-            , SA.textAnchor ST.AnchorMiddle
-            ]
-            [ SC.text props.label
-            ]
-        , S.text_
-            [ SAP.x props.x
-            , SAP.y props.y
-            , SAP.strokeWidth 4
-            , Svg.Attributes.fill Theme.baseForeground
-            , Svg.Attributes.stroke Theme.baseBackground
-            , Svg.Attributes.style "paint-order:stroke"
-            , SAP.fontSize props.ctx.fontSize.lg
-            , SA.textAnchor ST.AnchorMiddle
-            ]
-            [ SC.text props.label
-            ]
+    S.text_
+        [ SAP.x props.x
+        , SAP.y props.y
+        , SAP.strokeWidth 4
+        , Svg.Attributes.fill W.Theme.Color.baseText
+        , Svg.Attributes.stroke W.Theme.Color.baseBg
+        , Svg.Attributes.style "paint-order:stroke"
+        , SAP.fontSize props.ctx.fontSize.lg
+        , SA.textAnchor ST.AnchorMiddle
+        ]
+        [ SC.text props.label
         ]
 
 

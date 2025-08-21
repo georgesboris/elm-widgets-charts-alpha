@@ -99,7 +99,6 @@ import Scale
 import Svg
 import Svg.Attributes
 import Svg.Events
-import Theme
 import TypedSvg as S
 import TypedSvg.Attributes as SA
 import TypedSvg.Attributes.InPx as SAP
@@ -109,6 +108,8 @@ import W.Chart.Internal
 import W.Chart.Internal.Tick
 import W.Chart.Internal.Voronoi
 import W.Svg.Attributes
+import W.Theme
+import W.Theme.Color
 
 
 {-| -}
@@ -944,7 +945,7 @@ viewAxisLabels (W.Chart.Internal.RenderData d) =
                             , SAP.fontSize d.ctx.fontSize.lg
                             , SAP.x 0
                             , SAP.y 0
-                            , Svg.Attributes.fill (Theme.baseForegroundWithAlpha 0.8)
+                            , Svg.Attributes.fill W.Theme.Color.textSubtle
                             ]
                             [ SC.text label ]
                         ]
@@ -964,7 +965,7 @@ viewAxisLabels (W.Chart.Internal.RenderData d) =
                             , SAP.fontSize d.ctx.fontSize.lg
                             , SAP.x 0
                             , SAP.y 0
-                            , Svg.Attributes.fill (Theme.baseForegroundWithAlpha 0.8)
+                            , Svg.Attributes.fill W.Theme.Color.textSubtle
                             ]
                             [ SC.text label ]
                         ]
@@ -978,7 +979,7 @@ viewAxisLabels (W.Chart.Internal.RenderData d) =
                         , SAP.fontSize d.ctx.fontSize.lg
                         , SAP.x (d.spacings.chart.width * 0.5)
                         , SAP.y (d.spacings.chart.height + d.ctx.fontSize.lg * 4.0)
-                        , Svg.Attributes.fill (Theme.baseForegroundWithAlpha 0.8)
+                        , Svg.Attributes.fill W.Theme.Color.textSubtle
                         ]
                         [ SC.text label ]
                 )
@@ -1008,7 +1009,7 @@ viewYGrid (W.Chart.Internal.RenderData d) =
                             , SA.y1 (ST.px y)
                             , SA.y2 (ST.px y)
                             , SA.strokeWidth (ST.px 1.0)
-                            , Svg.Attributes.stroke (Theme.baseAuxWithAlpha 0.1)
+                            , Svg.Attributes.stroke W.Theme.Color.tintSubtle
                             ]
                             []
                     )
@@ -1032,7 +1033,7 @@ viewXGrid ctx =
                         , SAP.y1 0
                         , SAP.y2 ctx.height
                         , SA.strokeWidth (ST.px 1.0)
-                        , Svg.Attributes.stroke (Theme.baseAuxWithAlpha 0.1)
+                        , Svg.Attributes.stroke W.Theme.Color.tintSubtle
                         ]
                         []
                 )
@@ -1058,7 +1059,7 @@ viewXAxis ctx =
                             [ SA.textAnchor ST.AnchorMiddle
                             , SAP.y (ctx.fontSize.sm * 2)
                             , SAP.x xData.x.render.valueScaled
-                            , Svg.Attributes.fill (Theme.baseForegroundWithAlpha 0.6)
+                            , Svg.Attributes.fill W.Theme.Color.text
                             , SAP.fontSize ctx.fontSize.sm
                             ]
                             [ SC.text xData.x.render.label ]
@@ -1099,7 +1100,7 @@ viewYAxis (W.Chart.Internal.RenderData d) =
                     , SA.y1 (ST.px d.ctx.y.zero)
                     , SA.y2 (ST.px d.ctx.y.zero)
                     , SA.strokeWidth (ST.px 1.0)
-                    , Svg.Attributes.stroke (Theme.baseAuxWithAlpha 0.3)
+                    , Svg.Attributes.stroke W.Theme.Color.tintSubtle
                     ]
                     []
                 ]
@@ -1270,7 +1271,7 @@ globalStyles =
             }
 
             .ew-charts--tooltip-x-label {
-                color: """ ++ Theme.baseAux ++ """;
+                color: """ ++ W.Theme.Color.baseTextSubtle ++ """;
             }
 
             .ew-charts--tooltip-x,
@@ -1297,7 +1298,7 @@ globalStyles =
             }
 
             .ew-charts--tooltip-yz {
-                border-top: 1px solid """ ++ Theme.baseAuxWithAlpha 0.1 ++ """;
+                border-top: 1px solid """ ++ W.Theme.Color.baseTintSubtle ++ """;
                 padding: 0 4px;
             }
 
@@ -1327,7 +1328,7 @@ globalStyles =
             /* Axis & Labels */
 
             .ew-charts .tick text {
-                fill: """ ++ Theme.baseAux ++ """;
+                fill: """ ++ W.Theme.Color.baseTextSubtle ++ """;
                 font-family: var(--theme-font-text), sans-serif;
                 font-size: var(--ew-font-sm);
             }
@@ -1335,14 +1336,14 @@ globalStyles =
             .ew-charts--x-axis path.domain,
             .ew-charts--y-axis path.domain,
             .ew-charts--z-axis path.domain {
-                stroke: """ ++ Theme.baseAuxWithAlpha 0.1 ++ """;
+                stroke: """ ++ W.Theme.Color.baseTintSubtle ++ """;
                 stroke-width: """ ++ String.fromFloat 1 ++ """px;
             }
 
             .ew-charts--x-axis .tick line,
             .ew-charts--y-axis .tick line,
             .ew-charts--z-axis .tick line {
-                stroke: """ ++ Theme.baseAuxWithAlpha 0.2 ++ """;
+                stroke: """ ++ W.Theme.Color.baseTintSubtle ++ """;
             }
 
             /* Animations */
@@ -1426,7 +1427,7 @@ globalStyles =
             }
 
             .ew-charts--hover-rect {
-                fill: """ ++ Theme.baseAuxWithAlpha 0.03 ++ """;
+                fill: """ ++ W.Theme.Color.baseTintSubtle ++ """;
             }
             .ew-charts--hover-rect.m--use-bars:hover,
             .ew-charts--hover-rect:hover + g .ew-charts--hover-line,
