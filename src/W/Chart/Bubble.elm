@@ -158,7 +158,7 @@ view ctx axisData props =
                                     (S.g
                                         [ W.Chart.Internal.attrTransformOrigin x.render.valueScaled y.render.valueScaled
                                         , W.Chart.Internal.attrAnimationDelay ctx x.render.valueScaled y.render.valueScaled
-                                        , SA.class [ "ew-charts--animate-scale" ]
+                                        , SA.class [ "w__charts--animate-scale" ]
                                         ]
                                         [ W.Svg.Circle.view
                                             [ Svg.Attributes.stroke y.render.color

@@ -1,11 +1,17 @@
 module W.Chart exposing
     ( globalStyles, fromX, fromXY, fromXYZ, ConfigX, ConfigXY, ConfigXYZ, Config, ChartAttribute
     , xAxis, axis, axisList
-    , axisLabel, defaultValue, format, formatStack, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
+    , stacked, distribution
+    , axisLabel, axisLabelPadding
+    , defaultValue, safety
+    , ticks, format, formatStack
+    , noAxisLine, noGridLines
+    , AxisAttribute
     , noLabels, dontAutoHideLabels
+    , topLegends, bottomLegends, legendPadding
     , id
     , width, ratio, background
-    , padding, paddingX, paddingY, paddingCustom
+    , padding, paddingX, paddingY, paddingTop, paddingBottom, paddingLeft, paddingRight, paddingCustom
     , fontSize
     , view, WidgetX, WidgetXY, WidgetXYZ, Widget
     , withActive, withHover, groupByXY, onClick, onMouseEnter, onMouseLeave, PointX, PointXY, PointXYZ
@@ -29,12 +35,22 @@ module W.Chart exposing
 
 # Axis Attributes
 
-@docs axisLabel, defaultValue, format, formatStack, noAxisLine, noGridLines, safety, stacked, distribution, ticks, AxisAttribute
+@docs stacked, distribution
+@docs axisLabel, axisLabelPadding
+@docs defaultValue, safety
+@docs ticks, format, formatStack
+@docs noAxisLine, noGridLines
+@docs AxisAttribute
 
 
 # Labels
 
 @docs noLabels, dontAutoHideLabels
+
+
+# Legends
+
+@docs topLegends, bottomLegends, legendPadding
 
 
 # Testing
@@ -52,7 +68,7 @@ module W.Chart exposing
 
 ## Padding
 
-@docs padding, paddingX, paddingY, paddingCustom
+@docs padding, paddingX, paddingY, paddingTop, paddingBottom, paddingLeft, paddingRight, paddingCustom
 
 
 ## Colors
@@ -104,7 +120,7 @@ import TypedSvg.Attributes as SA
 import TypedSvg.Attributes.InPx as SAP
 import TypedSvg.Core as SC
 import TypedSvg.Types as ST
-import W.Chart.Internal
+import W.Chart.Internal exposing (RenderDataFull, RenderDataYZ)
 import W.Chart.Internal.Tick
 import W.Chart.Internal.Voronoi
 import W.Svg.Attributes
@@ -349,15 +365,12 @@ ratio v =
 {-| -}
 padding : Int -> ChartAttribute msg
 padding v =
-    Attr.attr
-        (\a ->
-            { a
-                | padding =
-                    { top = toFloat v
-                    , left = toFloat v
-                    , right = toFloat v
-                    , bottom = toFloat v
-                    }
+    withPadding
+        (\_ ->
+            { top = toFloat v
+            , left = toFloat v
+            , right = toFloat v
+            , bottom = toFloat v
             }
         )
 
@@ -365,41 +378,42 @@ padding v =
 {-| -}
 paddingX : Int -> ChartAttribute msg
 paddingX v =
-    Attr.attr
-        (\a ->
-            let
-                p : W.Chart.Internal.Padding
-                p =
-                    a.padding
-            in
-            { a
-                | padding =
-                    { p
-                        | left = toFloat v
-                        , right = toFloat v
-                    }
-            }
-        )
+    withPadding (\p -> { p | left = toFloat v, right = toFloat v })
 
 
 {-| -}
 paddingY : Int -> ChartAttribute msg
 paddingY v =
-    Attr.attr
-        (\a ->
-            let
-                p : W.Chart.Internal.Padding
-                p =
-                    a.padding
-            in
-            { a
-                | padding =
-                    { p
-                        | top = toFloat v
-                        , bottom = toFloat v
-                    }
-            }
-        )
+    withPadding (\p -> { p | top = toFloat v, bottom = toFloat v })
+
+
+{-| -}
+paddingTop : Int -> ChartAttribute msg
+paddingTop v =
+    withPadding (\p -> { p | top = toFloat v })
+
+
+{-| -}
+paddingBottom : Int -> ChartAttribute msg
+paddingBottom v =
+    withPadding (\p -> { p | bottom = toFloat v })
+
+
+{-| -}
+paddingLeft : Int -> ChartAttribute msg
+paddingLeft v =
+    withPadding (\p -> { p | left = toFloat v })
+
+
+{-| -}
+paddingRight : Int -> ChartAttribute msg
+paddingRight v =
+    withPadding (\p -> { p | right = toFloat v })
+
+
+withPadding : (W.Chart.Internal.Padding -> W.Chart.Internal.Padding) -> ChartAttribute msg
+withPadding fn =
+    Attr.attr (\a -> { a | padding = fn a.padding })
 
 
 {-| -}
@@ -446,6 +460,24 @@ fontSize v =
 debug : ChartAttribute msg
 debug =
     Attr.attr (\a -> { a | debug = True })
+
+
+{-| -}
+bottomLegends : ChartAttribute msg
+bottomLegends =
+    Attr.attr (\a -> { a | legendDisplay = W.Chart.Internal.BottomLegends })
+
+
+{-| -}
+topLegends : ChartAttribute msg
+topLegends =
+    Attr.attr (\a -> { a | legendDisplay = W.Chart.Internal.TopLegends })
+
+
+{-| -}
+legendPadding : Float -> ChartAttribute msg
+legendPadding v =
+    Attr.attr (\a -> { a | legendPadding = Just v })
 
 
 {-| -}
@@ -588,6 +620,12 @@ axisLabel v =
 
 
 {-| -}
+axisLabelPadding : Float -> AxisAttribute
+axisLabelPadding v =
+    Attr.attr (\attrs -> { attrs | labelPadding = Just v })
+
+
+{-| -}
 defaultValue : Float -> AxisAttribute
 defaultValue v =
     Attr.attr (\attrs -> { attrs | defaultValue = v })
@@ -666,76 +704,136 @@ view widgets (W.Chart.Internal.Config cfg) =
                     (W.Chart.Internal.RenderData d) =
                         renderData
                 in
-                H.div
+                H.figure
                     [ cfg.attrs.id
                         |> Maybe.map HA.id
                         |> Maybe.withDefault (HA.class "")
-                    , HA.class "ew-charts"
+                    , HA.class "w__charts"
                     , HA.classList
                         [ ( "m--unfocus", True || cfg.hover /= Nothing )
                         , ( "m--debug", d.attrs.debug )
                         , ( "m--labels-autohide", d.attrs.labelsAutoHide )
                         ]
-                    , HA.attribute "style"
-                        ("--ew-font-sm:"
-                            ++ toPx d.ctx.fontSize.sm
-                            ++ ";--ew-font-md:"
-                            ++ toPx d.ctx.fontSize.md
-                            ++ ";--ew-font-lg:"
-                            ++ toPx d.ctx.fontSize.lg
-                            ++ "px;padding:"
-                            ++ paddingToPixels d.spacings
-                        )
-                    , W.Chart.Internal.maybeAttr cfg.attrs.onMouseEnter HE.onMouseEnter
-                    , W.Chart.Internal.maybeAttr cfg.attrs.onMouseLeave HE.onMouseLeave
+                    , W.Theme.styleList
+                        [ ( "--w-charts-font-sm", W.Chart.Internal.toPx d.ctx.fontSize.sm )
+                        , ( "--w-charts-font-md", W.Chart.Internal.toPx d.ctx.fontSize.md )
+                        , ( "--w-charts-font-lg", W.Chart.Internal.toPx d.ctx.fontSize.lg )
+                        , ( "padding-left", W.Chart.Internal.toPx d.spacings.padding.left )
+                        , ( "padding-right", W.Chart.Internal.toPx d.spacings.padding.right )
+                        ]
                     ]
-                    [ Svg.svg
-                        [ SA.viewBox 0 0 d.spacings.chart.width d.spacings.chart.height
-                        , SA.class [ "ew-charts--svg" ]
-                        ]
-                        [ -- Grid
-                          viewYGrid renderData
-                        , viewXGrid d.ctx
+                    [ case cfg.attrs.legendDisplay of
+                        W.Chart.Internal.TopLegends ->
+                            viewLegends d
 
-                        -- Labels
-                        , viewAxisLabels renderData
-
-                        -- Axis
-                        , viewYAxis renderData
-                        , viewZAxis renderData
-
-                        -- Elements & Hover
-                        , viewXAxis d.ctx
-                        , viewWidgets "bg" .background renderData widgets
-                        , viewWidgets "main" .main renderData widgets
-                        , viewWidgets "fg" .foreground renderData widgets
-                        , if d.attrs.labels then
-                            viewWidgets "labels" .labels renderData widgets
-
-                          else
+                        _ ->
                             H.text ""
-                        , viewActive cfg d.ctx widgets
-                        , viewHoverAndLabels cfg d.ctx widgets
+                    , H.div
+                        [ W.Theme.styleList
+                            [ ( "padding-top", W.Chart.Internal.toPx d.spacings.padding.top )
+                            , ( "padding-bottom", W.Chart.Internal.toPx d.spacings.padding.bottom )
+                            ]
+                        , W.Chart.Internal.maybeAttr cfg.attrs.onMouseEnter HE.onMouseEnter
+                        , W.Chart.Internal.maybeAttr cfg.attrs.onMouseLeave HE.onMouseLeave
                         ]
+                        [ Svg.svg
+                            [ SA.viewBox 0 0 d.spacings.chart.width d.spacings.chart.height
+                            , SA.class [ "w__charts--svg" ]
+                            ]
+                            [ -- Grid
+                              viewYGrid renderData
+                            , viewXGrid d.ctx
+
+                            -- Labels
+                            , viewAxisLabels renderData
+
+                            -- Axis
+                            , viewYAxis renderData
+                            , viewZAxis renderData
+
+                            -- Elements & Hover
+                            , viewXAxis d.ctx
+                            , viewWidgets "bg" .background renderData widgets
+                            , viewWidgets "main" .main renderData widgets
+                            , viewWidgets "fg" .foreground renderData widgets
+                            , if d.attrs.labels then
+                                viewWidgets "labels" .labels renderData widgets
+
+                              else
+                                H.text ""
+                            , viewActive cfg d.ctx widgets
+                            , viewHoverAndLabels cfg d.ctx widgets
+                            ]
+                        ]
+                    , case cfg.attrs.legendDisplay of
+                        W.Chart.Internal.BottomLegends ->
+                            viewLegends d
+
+                        _ ->
+                            H.text ""
                     ]
             )
         |> Maybe.withDefault (H.text "")
 
 
-paddingToPixels : W.Chart.Internal.Spacings -> String
-paddingToPixels spacings =
-    toPx spacings.padding.top
-        ++ " "
-        ++ toPx spacings.padding.right
-        ++ " "
-        ++ toPx spacings.padding.bottom
-        ++ " "
-        ++ toPx spacings.padding.left
+viewLegends : RenderDataFull msg x y z -> H.Html msg
+viewLegends renderData =
+    H.div
+        [ HA.class "w__charts__legends"
+        , case renderData.attrs.legendDisplay of
+            W.Chart.Internal.TopLegends ->
+                renderData.attrs.legendPadding
+                    |> Maybe.withDefault renderData.spacings.padding.top
+                    |> W.Chart.Internal.toPx
+                    |> HA.style "padding-top"
+
+            W.Chart.Internal.BottomLegends ->
+                renderData.attrs.legendPadding
+                    |> Maybe.withDefault renderData.spacings.padding.bottom
+                    |> W.Chart.Internal.toPx
+                    |> HA.style "padding-bottom"
+
+            W.Chart.Internal.NoLegends ->
+                HA.class "hidden"
+        ]
+        [ renderData.y
+            |> Maybe.map (viewAxisLegends renderData renderData.ctx.y)
+            |> Maybe.withDefault (H.text "")
+        , renderData.z
+            |> Maybe.map (viewAxisLegends renderData renderData.ctx.z)
+            |> Maybe.withDefault (H.text "")
+        ]
 
 
-toPx : Float -> String
-toPx v =
-    String.fromFloat v ++ "px"
+viewAxisLegends : RenderDataFull msg x y z -> W.Chart.Internal.RenderAxisYZ a -> RenderDataYZ x a -> H.Html msg
+viewAxisLegends chartAttrs axisAttrs axisData =
+    H.section
+        [ HA.class "w__charts__legends__axis" ]
+        [ axisAttrs.label
+            |> W.Chart.Internal.maybeFilter (\_ -> chartAttrs.attrs.showLegendAxisLabels)
+            |> Maybe.map
+                (\axisLabel_ ->
+                    H.p
+                        [ HA.class "w__charts__legends__title" ]
+                        [ H.text axisLabel_ ]
+                )
+            |> Maybe.withDefault (H.text "")
+        , H.div
+            [ HA.class "w__charts__legends__list" ]
+            (axisData.data
+                |> List.map
+                    (\y ->
+                        H.p [ HA.class "w__charts__legends__item" ]
+                            [ H.span
+                                [ HA.style "background" (axisData.toColor y)
+                                , HA.class "w__charts__legends__color"
+                                ]
+                                []
+                            , H.span [] [ H.text (axisData.toLabel y) ]
+                            ]
+                    )
+            )
+        ]
 
 
 
@@ -751,7 +849,7 @@ viewWidgets :
 viewWidgets class getter (W.Chart.Internal.RenderData { ctx }) widgets =
     widgets
         |> List.filterMap (\(W.Chart.Internal.Widget w) -> Maybe.map (\el_ -> el_ ctx) (getter w))
-        |> S.g [ SA.class [ "ew-charts--" ++ class ] ]
+        |> S.g [ SA.class [ "w__charts--" ++ class ] ]
 
 
 
@@ -768,7 +866,7 @@ viewActive config ctx widgets =
         |> Maybe.andThen (\coords -> W.Chart.Internal.dataFromCoords coords ctx)
         |> Maybe.map
             (\point ->
-                S.g [ Svg.Attributes.class "ew-charts--active" ]
+                S.g [ Svg.Attributes.class "w__charts--active" ]
                     [ viewHoverWidgets ctx point (config.toPoint point) widgets ]
             )
         |> Maybe.withDefault (H.text "")
@@ -870,7 +968,7 @@ viewHoverContent :
     -> SC.Svg msg
 viewHoverContent ctx pointData point widgets =
     S.g
-        [ SA.class [ "ew-charts--hover" ] ]
+        [ SA.class [ "w__charts--hover" ] ]
         [ viewChartPointCoords ctx pointData
         , viewHoverWidgets ctx pointData point widgets
         ]
@@ -897,7 +995,7 @@ viewChartPointCoords ctx point =
 
 viewHoverAttrs : W.Chart.Internal.HoverAttrs msg point -> W.Chart.Internal.ChartPoint x y z -> point -> List (Svg.Attribute msg)
 viewHoverAttrs hoverAttrs pointData point =
-    [ SA.class [ "ew-charts--hover-target" ]
+    [ SA.class [ "w__charts--hover-target" ]
     , Svg.Attributes.fill "transparent"
     , W.Svg.Attributes.maybe hoverAttrs.onClick (\fn -> Svg.Events.onClick (fn pointData.pos point))
     , W.Svg.Attributes.maybe hoverAttrs.onMouseEnter (\fn -> Svg.Events.onMouseOver (fn pointData.pos point))
@@ -936,8 +1034,12 @@ viewAxisLabels (W.Chart.Internal.RenderData d) =
             |> Maybe.map
                 (\label ->
                     W.Chart.Internal.viewTranslate
-                        { x = d.ctx.fontSize.lg * -4.0
-                        , y = d.spacings.chart.height * 0.5
+                        -- { x =
+                        { y = d.spacings.chart.height * 0.5
+                        , x =
+                            d.attrs.yAxis.labelPadding
+                                |> Maybe.withDefault (d.ctx.fontSize.lg * 4.0)
+                                |> (*) -1
                         }
                         [ S.text_
                             [ SA.transform [ ST.Rotate 270 0 0 ]
@@ -956,8 +1058,10 @@ viewAxisLabels (W.Chart.Internal.RenderData d) =
             |> Maybe.map
                 (\label ->
                     W.Chart.Internal.viewTranslate
-                        { x = d.spacings.chart.width + (d.ctx.fontSize.lg * 4.0)
-                        , y = d.spacings.chart.height * 0.5
+                        { y = d.spacings.chart.height * 0.5
+                        , x =
+                            d.attrs.zAxis.labelPadding
+                                |> Maybe.withDefault (d.spacings.chart.width + (d.ctx.fontSize.lg * 4.0))
                         }
                         [ S.text_
                             [ SA.transform [ ST.Rotate 90 0 0 ]
@@ -978,7 +1082,10 @@ viewAxisLabels (W.Chart.Internal.RenderData d) =
                         [ SA.textAnchor ST.AnchorMiddle
                         , SAP.fontSize d.ctx.fontSize.lg
                         , SAP.x (d.spacings.chart.width * 0.5)
-                        , SAP.y (d.spacings.chart.height + d.ctx.fontSize.lg * 4.0)
+                        , d.attrs.xAxis.labelPadding
+                            |> Maybe.withDefault (d.ctx.fontSize.lg * 4.0)
+                            |> (+) d.spacings.chart.height
+                            |> SAP.y
                         , Svg.Attributes.fill W.Theme.Color.textSubtle
                         ]
                         [ SC.text label ]
@@ -1086,7 +1193,7 @@ viewYAxis (W.Chart.Internal.RenderData d) =
             in
             S.g []
                 [ S.g
-                    [ SA.class [ "ew-charts--y-axis" ] ]
+                    [ SA.class [ "w__charts--y-axis" ] ]
                     [ viewAxis
                         Axis.left
                         { ticks = d.ctx.y.ticks
@@ -1127,7 +1234,7 @@ viewZAxis (W.Chart.Internal.RenderData d) =
                 , y = 0
                 }
                 [ S.g
-                    [ SA.class [ "ew-charts--z-axis" ] ]
+                    [ SA.class [ "w__charts--z-axis" ] ]
                     [ viewAxis
                         Axis.right
                         { ticks = d.ctx.z.ticks
@@ -1176,183 +1283,232 @@ globalStyles =
         [ H.text ("""
             /* Basics */
 
-            .ew-charts,
-            .ew-charts text {
+            .w__charts,
+            .w__charts text {
                 font-family: var(--theme-font-text), sans-serif;
                 line-height: 0;
             }
 
             /* Prevent Tooltip Clipping */
 
-            .ew-charts--svg,
-            .ew-charts--tooltip-wrapper {
+            .w__charts--svg,
+            .w__charts--tooltip-wrapper {
                 overflow: visible;
             }
 
             /* Unfocus */
 
-            .ew-charts.m--unfocus:hover .ew-charts--main {
+            .w__charts.m--unfocus:hover .w__charts--main {
                 filter: grayscale(0%);
             }
 
             /* Hover */
 
-            .ew-charts--active,
-            .ew-charts--hover {
+            .w__charts--active,
+            .w__charts--hover {
                 pointer-events: none;
             }
-            .ew-charts--hover {
+            .w__charts--hover {
                 display: none;
             }
-            .ew-charts--hover-target:hover + .ew-charts--hover {
+            .w__charts--hover-target:hover + .w__charts--hover {
                 display: block;
+            }
+
+            /* Chart */
+
+            .w__charts {
+                padding: 0;
+                margin: 0;
             }
 
             /* Labels */
 
-            .ew-charts--labels {
-                animation: ew-charts--fade 0.2s ease-out forwards;
+            .w__charts--labels {
+                animation: w__charts--fade 0.2s ease-out forwards;
             }
 
-            .ew-charts.m--labels-autohide:has(.ew-charts--hover-target:hover) .ew-charts--labels,
-            .ew-charts.m--labels-autohide:has(.ew-charts--active) .ew-charts--labels {
+            .w__charts.m--labels-autohide:has(.w__charts--hover-target:hover) .w__charts--labels,
+            .w__charts.m--labels-autohide:has(.w__charts--active) .w__charts--labels {
                 display: none;
             }
 
             /* Debug */
 
-            .ew-charts.m--debug .ew-charts--hover-target {
+            .w__charts.m--debug .w__charts--hover-target {
                 fill: rgba(255, 0, 0, 0.05);
                 stroke: rgba(255, 0, 0, 0.1);
             }
-            .ew-charts.m--debug .ew-charts--hover-target:hover {
+            .w__charts.m--debug .w__charts--hover-target:hover {
                 fill: rgba(255, 0, 0, 0.05);
                 stroke: rgba(255, 0, 0, 0.5);
             }
 
             /* Tooltip */
 
-            .ew-charts--tooltip {
+            .w__charts--tooltip {
                 display: flex;
                 align-items: flex-end;
                 justify-content: flex-start;
                 box-sizing: border-box;
                 font-family: inherit;
-                font-size: var(--ew-font-md);
+                font-size: var(--w-charts-font-md);
                 line-height: 1;
                 padding: 8px 0;
             }
-            .ew-charts--tooltip.m--align-left {
+            .w__charts--tooltip.m--align-left {
                 justify-content: flex-end;
             }
-            .ew-charts--tooltip.m--align-top {
+            .w__charts--tooltip.m--align-top {
                 align-items: flex-start;
             }
-            .ew-charts--tooltip.m--align-center {
+            .w__charts--tooltip.m--align-center {
                 align-items: center;
             }
 
-            .ew-charts--tooltip-x,
-            .ew-charts--tooltip-yz--label,
-            .ew-charts--tooltip-yz--list,
-            .ew-charts--tooltip-yz--item {
+            .w__charts--tooltip-x,
+            .w__charts--tooltip-yz--label,
+            .w__charts--tooltip-yz--list,
+            .w__charts--tooltip-yz--item {
                 margin: 0;
             }
 
-            .ew-charts--tooltip-yz--label {
+            .w__charts--tooltip-yz--label {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
             }
 
-            .ew-charts--tooltip-x {
+            .w__charts--tooltip-x {
                 padding: 4px;
                 font-weight: normal;
             }
 
-            .ew-charts--tooltip-x-label {
+            .w__charts--tooltip-x-label {
                 color: """ ++ W.Theme.Color.baseTextSubtle ++ """;
             }
 
-            .ew-charts--tooltip-x,
-            .ew-charts--tooltip-yz--label {
+            .w__charts--tooltip-x,
+            .w__charts--tooltip-yz--label {
                 font-size: inherit;
             }
 
-            .ew-charts--tooltip-x,
-            .ew-charts--tooltip-yz--item {
+            .w__charts--tooltip-x,
+            .w__charts--tooltip-yz--item {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
                 gap: 4px;
             }
-            .ew-charts--tooltip-x--label,
-            .ew-charts--tooltip-yz--item-label {
+            .w__charts--tooltip-x--label,
+            .w__charts--tooltip-yz--item-label {
                 flex-grow: 1;
             }
 
-            .ew-charts--tooltip-x--value,
-            .ew-charts--tooltip-yz--item-color,
-            .ew-charts--tooltip-yz--item-value {
+            .w__charts--tooltip-x--value,
+            .w__charts--tooltip-yz--item-color,
+            .w__charts--tooltip-yz--item-value {
                 flex-shrink: 0;
             }
 
-            .ew-charts--tooltip-yz {
+            .w__charts--tooltip-yz {
                 border-top: 1px solid """ ++ W.Theme.Color.baseTintSubtle ++ """;
                 padding: 0 4px;
             }
 
-            .ew-charts--tooltip-yz--label {
+            .w__charts--tooltip-yz--label {
                 padding: 4px 0 0;
             }
 
-            .ew-charts--tooltip-yz--list {
+            .w__charts--tooltip-yz--list {
                 list-style-type: none;
                 margin: 0;
                 padding: 4px 0;
             }
 
-            .ew-charts--tooltip-yz--item {
+            .w__charts--tooltip-yz--item {
                 padding: 2px 0;
                 margin: 0;
             }
-            .ew-charts--tooltip-yz--item-color {
+            .w__charts--tooltip-yz--item-color {
                 height: 8px;
                 width: 8px;
                 border-radius: 2px;
             }
-            .ew-charts--tooltip-yz--item-label {
+            .w__charts--tooltip-yz--item-label {
                 padding: 0 8px 0 2px;
             }
 
             /* Axis & Labels */
 
-            .ew-charts .tick text {
+            .w__charts .tick text {
                 fill: """ ++ W.Theme.Color.baseTextSubtle ++ """;
                 font-family: var(--theme-font-text), sans-serif;
-                font-size: var(--ew-font-sm);
+                font-size: var(--w-charts-font-sm);
             }
 
-            .ew-charts--x-axis path.domain,
-            .ew-charts--y-axis path.domain,
-            .ew-charts--z-axis path.domain {
+            .w__charts--x-axis path.domain,
+            .w__charts--y-axis path.domain,
+            .w__charts--z-axis path.domain {
                 stroke: """ ++ W.Theme.Color.baseTintSubtle ++ """;
                 stroke-width: """ ++ String.fromFloat 1 ++ """px;
             }
 
-            .ew-charts--x-axis .tick line,
-            .ew-charts--y-axis .tick line,
-            .ew-charts--z-axis .tick line {
+            .w__charts--x-axis .tick line,
+            .w__charts--y-axis .tick line,
+            .w__charts--z-axis .tick line {
                 stroke: """ ++ W.Theme.Color.baseTintSubtle ++ """;
+            }
+
+            /* Legends */
+
+            .w__charts__legends {
+                display: flex;
+                gap: 3em;
+                color: rgb(var(--w-text));
+                font-size: var(--w-charts-font-md);
+            }
+
+            .w__charts__legends__axis {
+                display: flex;
+                flex-direction: column;
+                gap: 0.75em;
+            }
+
+            .w__charts__legends__title {
+                margin: 0;
+                color: rgb(var(--w-text-subtle));
+                font-size: var(--w-charts-font-lg);
+            }
+
+            .w__charts__legends__list {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 1.75em;
+            }
+
+            .w__charts__legends__item {
+                margin: 0;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                line-height: 1;
+            }
+
+            .w__charts__legends__color {
+                display: block;
+                width: 0.75em;
+                height: 0.75em;
+                border-radius: 0.2em;
             }
 
             /* Animations */
 
-            .ew-charts--animate-fade {
-                animation: ew-charts--fade 0.4s ease-out forwards;
+            .w__charts--animate-fade {
+                animation: w__charts--fade 0.4s ease-out forwards;
             }
 
-            @keyframes ew-charts--fade {
+            @keyframes w__charts--fade {
                 from {
                     opacity: 0;
                 }
@@ -1361,11 +1517,11 @@ globalStyles =
                 }
             }
 
-            .ew-charts--animate-h-clip {
-                animation: ew-charts--h-clip 0.4s ease-out forwards;
+            .w__charts--animate-h-clip {
+                animation: w__charts--h-clip 0.4s ease-out forwards;
             }
 
-            @keyframes ew-charts--h-clip {
+            @keyframes w__charts--h-clip {
                 from {
                     clip-path: rect(0 0 0 0);
                 }
@@ -1374,12 +1530,12 @@ globalStyles =
                 }
             }
 
-            .ew-charts--animate-scale {
+            .w__charts--animate-scale {
                 transform: scale(0);
-                animation: ew-charts--scale 0.2s ease-out forwards;
+                animation: w__charts--scale 0.2s ease-out forwards;
             }
 
-            @keyframes ew-charts--scale {
+            @keyframes w__charts--scale {
                 from {
                     transform: scale(0);
                 }
@@ -1388,12 +1544,12 @@ globalStyles =
                 }
             }
 
-            .ew-charts--animate-scale-z {
+            .w__charts--animate-scale-z {
                 transform: scale(1,0);
-                animation: ew-charts--scale-z 0.2s ease-out forwards;
+                animation: w__charts--scale-z 0.2s ease-out forwards;
             }
 
-            @keyframes ew-charts--scale-z {
+            @keyframes w__charts--scale-z {
                 from {
                     transform: scale(1,0);
                 }
@@ -1404,36 +1560,36 @@ globalStyles =
 
             /*
 
-            .ew-charts--y-axis path.domain,
-            .ew-charts--y-axis .tick line {
+            .w__charts--y-axis path.domain,
+            .w__charts--y-axis .tick line {
                 display: none;
             }
 
-            .ew-charts--hover-line,
-            .ew-charts--hover-circle,
-            .ew-charts--tooltip {
+            .w__charts--hover-line,
+            .w__charts--hover-circle,
+            .w__charts--tooltip {
                 pointer-events: none;
             }
 
-            .ew-charts--hover-circle {
+            .w__charts--hover-circle {
                 filter: drop-shadow(0px 0px 8px currentColor);
             }
 
-            .ew-charts--hover-rect,
-            .ew-charts--hover-line,
-            .ew-charts--hover-circle,
-            .ew-charts--tooltip {
+            .w__charts--hover-rect,
+            .w__charts--hover-line,
+            .w__charts--hover-circle,
+            .w__charts--tooltip {
                 opacity: 0;
             }
 
-            .ew-charts--hover-rect {
+            .w__charts--hover-rect {
                 fill: """ ++ W.Theme.Color.baseTintSubtle ++ """;
             }
-            .ew-charts--hover-rect.m--use-bars:hover,
-            .ew-charts--hover-rect:hover + g .ew-charts--hover-line,
-            .ew-charts--hover-rect:hover + g .ew-charts--hover-circle,
-            .ew-charts--hover-rect:hover + g + .ew-charts--tooltip,
-            .ew-charts--tooltip-trigger:hover + .ew-charts--tooltip {
+            .w__charts--hover-rect.m--use-bars:hover,
+            .w__charts--hover-rect:hover + g .w__charts--hover-line,
+            .w__charts--hover-rect:hover + g .w__charts--hover-circle,
+            .w__charts--hover-rect:hover + g + .w__charts--tooltip,
+            .w__charts--tooltip-trigger:hover + .w__charts--tooltip {
                 opacity: 1;
             }
             */

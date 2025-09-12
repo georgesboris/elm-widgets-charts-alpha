@@ -202,7 +202,7 @@ viewCustom :
     -> H.Html msg
 viewCustom props =
     Svg.foreignObject
-        [ SA.class [ "ew-charts--tooltip-wrapper" ]
+        [ SA.class [ "w__charts--tooltip-wrapper" ]
         , SAP.x props.x
         , SAP.y props.y
         ]
@@ -219,13 +219,13 @@ viewX :
     -> H.Html msg
 viewX attrs ctx x yzPoints =
     H.h1
-        [ HA.class "ew-charts--tooltip-x" ]
-        [ H.span [ HA.class "ew-charts--tooltip-x--label" ] [ H.text x.render.label ]
+        [ HA.class "w__charts--tooltip-x" ]
+        [ H.span [ HA.class "w__charts--tooltip-x--label" ] [ H.text x.render.label ]
         , attrs.headerValue
             |> Maybe.map
                 (\fn ->
                     H.span
-                        [ HA.class "ew-charts--tooltip-x--value " ]
+                        [ HA.class "w__charts--tooltip-x--value " ]
                         (fn ctx yzPoints)
                 )
             |> Maybe.withDefault (H.text "")
@@ -245,9 +245,9 @@ viewYZ attrs axis ctx axisAttrs dataPoints =
         |> Maybe.map
             (\_ ->
                 H.section
-                    [ HA.class "ew-charts--tooltip-yz" ]
+                    [ HA.class "w__charts--tooltip-yz" ]
                     [ viewAxisHeader axis ctx axisAttrs dataPoints
-                    , H.ul [ HA.class "ew-charts--tooltip-yz--list" ]
+                    , H.ul [ HA.class "w__charts--tooltip-yz--list" ]
                         (List.map (viewItem attrs ctx dataPoints) dataPoints)
                     ]
             )
@@ -281,7 +281,7 @@ viewAxisHeader attrs ctx axisAttrs dataPoints =
                     |> Maybe.map (\fn -> H.span [] (fn ctx (List.map .render dataPoints)))
                     |> Maybe.withDefault (H.text "")
         in
-        H.h2 [ HA.class "ew-charts--tooltip-yz--label" ]
+        H.h2 [ HA.class "w__charts--tooltip-yz--label" ]
             [ axisLabel_
             , axisValue_
             ]
@@ -290,15 +290,15 @@ viewAxisHeader attrs ctx axisAttrs dataPoints =
 viewItem : Attributes msg x y z point -> W.Chart.Context x y z -> List (W.Chart.Internal.DataPoint a) -> W.Chart.Internal.DataPoint a -> H.Html msg
 viewItem attrs ctx pointsByX point =
     H.li
-        [ HA.class "ew-charts--tooltip-yz--item" ]
+        [ HA.class "w__charts--tooltip-yz--item" ]
         [ H.span
-            [ HA.class "ew-charts--tooltip-yz--item-color"
+            [ HA.class "w__charts--tooltip-yz--item-color"
             , HA.style "background" point.render.color
             ]
             []
-        , H.span [ HA.class "ew-charts--tooltip-yz--item-label" ] [ H.text point.render.label ]
+        , H.span [ HA.class "w__charts--tooltip-yz--item-label" ] [ H.text point.render.label ]
         , H.span
-            [ HA.class "ew-charts--tooltip-yz--item-value" ]
+            [ HA.class "w__charts--tooltip-yz--item-value" ]
             (case attrs.format of
                 Just format_ ->
                     format_ ctx (List.map .render pointsByX) point.render
@@ -369,7 +369,7 @@ view ctx coords children =
                 y
     in
     Svg.foreignObject
-        [ SA.class [ "ew-charts--tooltip-wrapper" ]
+        [ SA.class [ "w__charts--tooltip-wrapper" ]
         , Svg.Attributes.width (String.fromFloat wrapperWidth ++ "px")
         , Svg.Attributes.height (String.fromFloat wrapperHeight ++ "px")
         , SAP.y wrapperY
@@ -377,7 +377,7 @@ view ctx coords children =
         ]
         [ H.div
             [ HA.attribute "xlmns" "http://www.w3.org/1999/xhtml"
-            , HA.class "ew-charts--tooltip"
+            , HA.class "w__charts--tooltip"
             , HA.classList
                 [ ( "m--align-left", alignLeft )
                 , ( "m--align-top", alignTop )
@@ -386,19 +386,14 @@ view ctx coords children =
             , HA.style "height" (String.fromFloat wrapperHeight ++ "px")
             ]
             [ H.div
-                [ HA.class "w/base"
-                , HA.class "w--bg w--text-default w--text-subtle"
+                [ HA.class "w--bg-subtle w--text-default w--text-subtle"
                 , HA.class "w--border w--border-solid"
                 , HA.class "w--rounded w--shadow-shadow w--shadow"
                 , W.Theme.styleList
-                    [ ( "border-color", W.Theme.Color.tintSubtle )
+                    [ ( "background", W.Theme.Color.bgSubtle )
+                    , ( "border-color", W.Theme.Color.tintSubtle )
                     ]
                 ]
-                [ H.div
-                    [ HA.style "background" "rgba(0,0,0,0.2)"
-                    , HA.class "w--rounded"
-                    ]
-                    children
-                ]
+                children
             ]
         ]

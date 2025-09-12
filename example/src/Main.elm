@@ -2,7 +2,6 @@ module Main exposing (main)
 
 import Browser
 import Date exposing (Date)
-import Dict exposing (Dict)
 import FormatNumber
 import FormatNumber.Locales
 import Html as H
@@ -10,8 +9,8 @@ import Html.Attributes as HA
 import Time exposing (Month(..))
 import W.Chart
 import W.Chart.Bar
-import W.Chart.Colors
 import W.Chart.Line
+import W.Chart.Colors
 import W.Chart.Tooltip
 import W.Styles
 import W.Theme
@@ -64,15 +63,17 @@ main =
         , view =
             \model ->
                 viewWrapper model
-                    [ W.Styles.view [ W.Styles.darkTheme ]
-                    , W.Chart.fromXYZ
+                    [ W.Chart.fromXYZ
                         [ W.Chart.dontAutoHideLabels
+                        , W.Chart.topLegends
+                        , W.Chart.paddingLeft 80
                         , W.Chart.onMouseLeaveChart OnMouseLeaveChart
                         ]
                         { x =
                             W.Chart.xAxis
                                 [ W.Chart.ticks 6
                                 , W.Chart.axisLabel "X Axis"
+                                , W.Chart.axisLabelPadding 60
                                 ]
                                 { data =
                                     List.range 1 5
@@ -82,7 +83,8 @@ main =
                         , y =
                             W.Chart.axisList
                                 [ W.Chart.axisLabel "Y Axis"
-                                , W.Chart.distribution
+                                , W.Chart.axisLabelPadding 60
+                                , W.Chart.stacked
                                 , W.Chart.formatStack
                                     (\xs ->
                                         xs
@@ -118,7 +120,7 @@ main =
                             , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
                             ]
                         |> W.Chart.view
-                            [ W.Chart.Line.fromY [ W.Chart.Line.showLabels, W.Chart.Line.labelsAsPercentages ]
+                            [ W.Chart.Bar.fromYZ [ W.Chart.Bar.showLabels, W.Chart.Bar.labelsAsPercentages ]
                             , W.Chart.Tooltip.fromYZ
                                 [ W.Chart.Tooltip.yAxisLabel [ H.text "YYY" ]
                                 , W.Chart.Tooltip.headerValue
@@ -177,11 +179,8 @@ viewWrapper model children =
         , HA.style "align-items" "center"
         , HA.style "justify-content" "center"
         ]
-        [ W.Theme.globalTheme
-            { theme = W.Theme.darkTheme
-            , darkMode = W.Theme.noDarkMode
-            }
-        , W.Chart.globalStyles
+        [ W.Chart.globalStyles
+        , W.Styles.view [ W.Styles.darkTheme ]
         , globalStyles
         , viewColor ( 20, 20 ) (Maybe.map Tuple.second model.onClick)
         , viewColor ( 80, 20 ) (Maybe.map Tuple.second model.onHover)
@@ -191,6 +190,7 @@ viewWrapper model children =
                 (\c ->
                     H.div
                         [ HA.style "background" W.Theme.Color.baseBg
+                        , HA.style "border" ("1px solid " ++ W.Theme.Color.baseAccent)
                         , HA.style "border-radius" "8px"
                         , HA.style "box-shadow" "0 0 20px rgba(0,0,0,0.2)"
                         ]
@@ -212,7 +212,7 @@ globalStyles =
         []
         [ H.text """
 
-.ew-charts--tooltip {
+.w__charts--tooltip {
     font-family: var(--theme-font-text), sans-serif;
 }
 """

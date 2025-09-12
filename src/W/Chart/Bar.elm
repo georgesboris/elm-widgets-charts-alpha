@@ -396,7 +396,7 @@ viewBars ctx axis attrs binScale indexedAxes toEventTarget =
                                     (S.g
                                         [ W.Chart.Internal.attrAnimationDelayX ctx x
                                         , W.Chart.Internal.attrTransformOrigin x axis.zero
-                                        , Svg.Attributes.class "ew-charts--animate-scale-z"
+                                        , Svg.Attributes.class "w__charts--animate-scale-z"
                                         ]
                                         [ viewBar
                                             [ attrs.onClick

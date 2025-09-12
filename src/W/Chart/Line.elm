@@ -284,7 +284,7 @@ viewLineWithArea attrs index ( chartDatum, points ) =
                 |> String.replace "(" "_"
                 |> String.replace ")" "_"
                 |> String.replace "#" "_"
-                |> (++) "ew-charts--g-"
+                |> (++) "w__charts--g-"
     in
     S.g
         []
@@ -299,7 +299,7 @@ viewLineWithArea attrs index ( chartDatum, points ) =
             ]
         , Path.element
             (Shape.area (shape attrs) areaPoints)
-            [ Svg.Attributes.class "ew-charts--animate-fade"
+            [ Svg.Attributes.class "w__charts--animate-fade"
             , Svg.Attributes.style ("animation-delay:" ++ String.fromInt (index * 400))
             , Svg.Attributes.fill ("url(#" ++ gradientId ++ ")")
             , attrs.onClick
@@ -314,7 +314,7 @@ viewLineWithArea attrs index ( chartDatum, points ) =
             ]
         , Path.element
             (Shape.line (shape attrs) linePoints)
-            [ Svg.Attributes.class "ew-charts--animate-h-clip"
+            [ Svg.Attributes.class "w__charts--animate-h-clip"
             , Svg.Attributes.style ("animation-delay:" ++ String.fromInt (index * 400))
             , Svg.Attributes.fill "transparent"
             , Svg.Attributes.strokeWidth "2px"
@@ -353,7 +353,7 @@ viewLine attrs index ( chartDatum, points ) =
     in
     Path.element
         (Shape.line (shape attrs) linePoints)
-        [ Svg.Attributes.class "ew-charts--animate-h-clip"
+        [ Svg.Attributes.class "w__charts--animate-h-clip"
         , Svg.Attributes.style ("animation-delay:" ++ String.fromInt (index * 400))
         , Svg.Attributes.fill "transparent"
         , Svg.Attributes.strokeWidth "2px"

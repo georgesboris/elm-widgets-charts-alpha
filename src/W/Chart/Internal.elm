@@ -1,6 +1,5 @@
 module W.Chart.Internal exposing
-    ( Attribute(..)
-    , Attributes
+    ( Attributes
     , AxisAttributes
     , AxisConfig
     , AxisDataPoints
@@ -17,6 +16,7 @@ module W.Chart.Internal exposing
     , DataPoint
     , HoverAttrs
     , HoverGrouping(..)
+    , LegendDisplay(..)
     , Padding
     , RenderAxisX
     , RenderAxisYZ
@@ -30,7 +30,6 @@ module W.Chart.Internal exposing
     , StackType(..)
     , Widget(..)
     , WidgetData
-    , applyAttrs
     , attrAnimationDelay
     , attrAnimationDelayX
     , attrTransformOrigin
@@ -48,6 +47,7 @@ module W.Chart.Internal exposing
     , maybeIf
     , toAxis
     , toDataPointsRender
+    , toPx
     , toRenderData
     , viewHtml
     , viewTranslate
@@ -145,6 +145,12 @@ type alias RenderAxisYZ a =
     , showAxis : Bool
     , showGrid : Bool
     }
+
+
+type LegendDisplay
+    = NoLegends
+    | TopLegends
+    | BottomLegends
 
 
 {-| -}
@@ -677,10 +683,6 @@ type alias Spacings =
     }
 
 
-type Attribute msg
-    = Attribute (Attributes msg -> Attributes msg)
-
-
 type alias Attributes msg =
     { debug : Bool
     , labels : Bool
@@ -701,6 +703,9 @@ type alias Attributes msg =
         , left : Float
         , right : Float
         }
+    , legendDisplay : LegendDisplay
+    , legendPadding : Maybe Float
+    , showLegendAxisLabels : Bool
     , background : String
     , id : Maybe String
     , onMouseEnter : Maybe msg
@@ -727,6 +732,7 @@ type AxisType
 
 type alias AxisAttributes =
     { label : Maybe String
+    , labelPadding : Maybe Float
     , defaultValue : Float
     , format : Float -> String
     , formatStack : Maybe (List Float -> String)
@@ -769,6 +775,7 @@ toAxis axisType attrs =
 defaultAxisAttributes : AxisAttributes
 defaultAxisAttributes =
     { label = Nothing
+    , labelPadding = Nothing
     , defaultValue = 0.0
     , format = formatFloat
     , formatStack = Nothing
@@ -803,6 +810,9 @@ defaultAttrs =
         , right = 80
         , bottom = 64
         }
+    , legendPadding = Nothing
+    , legendDisplay = NoLegends
+    , showLegendAxisLabels = False
     , background = "transparent"
     , id = Nothing
     , onMouseEnter = Nothing
@@ -842,11 +852,6 @@ formatPct value =
         * 100
         |> formatFloat
         |> (\s -> s ++ "%")
-
-
-applyAttrs : List (Attribute msg) -> Attributes msg
-applyAttrs attrs =
-    List.foldl (\(Attribute fn) a -> fn a) defaultAttrs attrs
 
 
 
@@ -1296,3 +1301,8 @@ addToList k v =
                 |> Maybe.withDefault [ v ]
                 |> Just
         )
+
+
+toPx : Float -> String
+toPx v =
+    String.fromFloat v ++ "px"

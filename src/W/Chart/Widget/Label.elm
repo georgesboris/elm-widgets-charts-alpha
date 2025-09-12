@@ -129,17 +129,31 @@ view :
     }
     -> SC.Svg msg
 view props =
-    S.text_
-        [ SAP.x props.x
-        , SAP.y props.y
-        , SAP.strokeWidth 4
-        , Svg.Attributes.fill W.Theme.Color.baseText
-        , Svg.Attributes.stroke W.Theme.Color.baseBg
-        , Svg.Attributes.style "paint-order:stroke"
-        , SAP.fontSize props.ctx.fontSize.lg
-        , SA.textAnchor ST.AnchorMiddle
-        ]
-        [ SC.text props.label
+    S.g
+        []
+        [ S.text_
+            [ SAP.x props.x
+            , SAP.y props.y
+            , SAP.strokeWidth 4
+            , Svg.Attributes.fill props.color
+            , Svg.Attributes.stroke W.Theme.Color.baseBg
+            , Svg.Attributes.style "paint-order:stroke"
+            , SAP.fontSize props.ctx.fontSize.lg
+            , SA.textAnchor ST.AnchorMiddle
+            ]
+            [ SC.text props.label
+            ]
+        , S.text_
+            [ SAP.x props.x
+            , SAP.y props.y
+            , SAP.strokeWidth 4
+            , Svg.Attributes.fill W.Theme.Color.baseText
+            , Svg.Attributes.fillOpacity "0.6"
+            , SAP.fontSize props.ctx.fontSize.lg
+            , SA.textAnchor ST.AnchorMiddle
+            ]
+            [ SC.text props.label
+            ]
         ]
 
 
@@ -304,11 +318,18 @@ viewBinsListPoint attrs props =
         yzPoints =
             List.map .render props.yz
 
+        xBase : Float
+        xBase =
+            props.x.render.valueStart
+                + Scale.convert props.binScale props.offset
+
         xStart : Float
         xStart =
-            props.x.render.valueStart
-                + (Scale.bandwidth props.binScale * 0.5)
-                + Scale.convert props.binScale props.offset
+            if props.axisAttrs.isStacked then
+                xBase + (Scale.bandwidth props.binScale * 0.5)
+
+            else
+                xBase
 
         formatPoint : W.Chart.RenderDatum -> String
         formatPoint =
@@ -434,7 +455,7 @@ viewStackPoint props =
                 , x = props.x
                 , pointList = props.pointList
                 , point =
-                    { color = "#fff"
+                    { color = W.Theme.Color.baseTextSubtle
                     , label = ""
                     , value = yValue
                     , valueString = yString
