@@ -172,21 +172,9 @@ viewList =
     Attr.withAttrs defaultAttrs
         (\attrs_ props ->
             let
-                xMaxLabels : Int
-                xMaxLabels =
-                    Basics.floor props.ctx.width // 60
-
-                length : Int
-                length =
-                    List.length props.points
-
                 step : Int
                 step =
-                    if length <= xMaxLabels then
-                        1
-
-                    else
-                        length // xMaxLabels
+                    toStep props.ctx (List.length props.points)
 
                 position : Position
                 position =
@@ -274,9 +262,23 @@ viewBinsList :
 viewBinsList =
     Attr.withAttrs defaultAttrs
         (\attrs props ->
+            let
+                binsCount : Int
+                binsCount =
+                    Scale.domain props.binScale
+                        |> List.length
+
+                totalBinsCount : Int
+                totalBinsCount =
+                    List.length props.points * binsCount
+
+                step : Int
+                step =
+                    toStep props.ctx totalBinsCount
+            in
             props.points
-                |> List.concatMap
-                    (\point ->
+                |> List.indexedMap
+                    (\index point ->
                         let
                             yCount : Int
                             yCount =
@@ -288,6 +290,8 @@ viewBinsList =
                             , axisAttrs = props.ctx.y
                             , x = point.x
                             , yz = point.y
+                            , xIndex = index
+                            , step = step
                             , offset = 0
                             }
                             ++ viewBinsListPoint attrs
@@ -296,9 +300,12 @@ viewBinsList =
                                 , axisAttrs = props.ctx.z
                                 , x = point.x
                                 , yz = point.z
+                                , xIndex = index
+                                , step = step
                                 , offset = yCount
                                 }
                     )
+                |> List.concat
                 |> S.g []
         )
 
@@ -311,6 +318,8 @@ viewBinsListPoint :
         , axisAttrs : W.Chart.Internal.RenderAxisYZ a
         , x : W.Chart.Point x
         , yz : List (W.Chart.Point a)
+        , xIndex : Int
+        , step : Int
         , offset : Int
         }
     -> List (SC.Svg msg)
@@ -346,6 +355,14 @@ viewBinsListPoint attrs props =
                         \point -> fn point.value
                     )
                 |> Maybe.withDefault .valueString
+
+        position : Position
+        position =
+            if props.axisAttrs.isStacked then
+                Center
+
+            else
+                attrs.position
     in
     viewStackPoint
         { attrs = attrs
@@ -358,19 +375,19 @@ viewBinsListPoint attrs props =
                 |> List.indexedMap
                     (\index point ->
                         let
+                            step : Int
+                            step =
+                                (props.xIndex + 1) * (props.offset + index)
+
                             visibleHeight : Bool
                             visibleHeight =
                                 abs (point.render.valueEnd - point.render.valueStart) >= props.ctx.fontSize.lg
 
-                            position : Position
-                            position =
-                                if props.axisAttrs.isStacked then
-                                    Center
-
-                                else
-                                    attrs.position
+                            visibleStep : Bool
+                            visibleStep =
+                                modBy props.step step == 0
                         in
-                        if visibleHeight then
+                        if visibleHeight && visibleStep then
                             let
                                 x : Float
                                 x =
@@ -393,6 +410,19 @@ viewBinsListPoint attrs props =
                             H.text ""
                     )
            )
+
+
+labelMinWidth : Int
+labelMinWidth =
+    40
+
+
+toStep : W.Chart.Context x y z -> Int -> Int
+toStep ctx numPoints =
+    (labelMinWidth // (Debug.log "1" <| Basics.floor ctx.width // numPoints))
+        |> toFloat
+        |> round
+        |> max 1
 
 
 yBinCount : W.Chart.Internal.RenderAxisYZ y -> List (W.Chart.Point y) -> Int

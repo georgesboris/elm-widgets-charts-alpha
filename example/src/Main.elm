@@ -96,7 +96,7 @@ main =
                                             |> formatFloat
                                     )
                                 ]
-                                { data = List.range 0 3
+                                { data = List.range 0 6
                                 , toLabel = String.fromInt
                                 , toValue = toValue (\x -> Basics.sin x)
                                 , toColor = W.Chart.Colors.colorByIndex W.Chart.Colors.warm
