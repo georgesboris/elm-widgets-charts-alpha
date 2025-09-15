@@ -69,6 +69,7 @@ main =
                         , W.Chart.legendPadding 10
                         , W.Chart.annotationsPadding 30
                         , W.Chart.header [ H.h1 [ HA.style "color" "white" ] [ H.text "My Chart" ] ]
+                        , W.Chart.footer [ H.p [ HA.style "color" "white" ] [ H.text "My Chart" ] ]
                         , W.Chart.paddingLeft 80
                         , W.Chart.onMouseLeaveChart OnMouseLeaveChart
                         ]

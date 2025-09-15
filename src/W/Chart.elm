@@ -890,6 +890,7 @@ viewTopAnnotations renderData =
                     Just header_ ->
                         H.figcaption
                             [ renderData.attrs.legendPadding
+                                |> W.Chart.Internal.maybeFilter (\_ -> renderData.attrs.legendDisplay == W.Chart.Internal.TopLegends)
                                 |> Maybe.map
                                     (\legendPadding_ ->
                                         HA.style "padding-bottom" (W.Chart.Internal.toPx legendPadding_)
@@ -947,6 +948,7 @@ viewBottomAnnotations renderData =
                     Just footer_ ->
                         H.footer
                             [ renderData.attrs.legendPadding
+                                |> W.Chart.Internal.maybeFilter (\_ -> renderData.attrs.legendDisplay == W.Chart.Internal.BottomLegends)
                                 |> Maybe.map
                                     (\legendPadding_ ->
                                         HA.style "padding-top" (W.Chart.Internal.toPx legendPadding_)
@@ -1453,8 +1455,10 @@ globalStyles =
             .w__charts,
             .w__charts text {
                 font-family: var(--theme-font-text), sans-serif;
+            }
+
+            .w__charts text {
                 font-weight: 600;
-                line-height: 0;
             }
 
             /* Prevent Tooltip Clipping */
