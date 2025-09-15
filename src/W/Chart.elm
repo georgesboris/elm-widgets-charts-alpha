@@ -9,6 +9,9 @@ module W.Chart exposing
     , AxisAttribute
     , noLabels, dontAutoHideLabels
     , topLegends, bottomLegends, legendPadding
+    , header, footer
+    , annotationsPadding, annotationsPaddingX
+    , annotationsTopPadding, annotationsBottomPadding, annotationsLeftPadding, annotationsRightPadding
     , id
     , width, ratio, background
     , padding, paddingX, paddingY, paddingTop, paddingBottom, paddingLeft, paddingRight, paddingCustom
@@ -43,14 +46,28 @@ module W.Chart exposing
 @docs AxisAttribute
 
 
-# Labels
+# Annotations
+
+
+## Labels
 
 @docs noLabels, dontAutoHideLabels
 
 
-# Legends
+## Legends
 
 @docs topLegends, bottomLegends, legendPadding
+
+
+## Header (caption) and footer
+
+@docs header, footer
+
+
+## Annotation Padding
+
+@docs annotationsPadding, annotationsPaddingX
+@docs annotationsTopPadding, annotationsBottomPadding, annotationsLeftPadding, annotationsRightPadding
 
 
 # Testing
@@ -462,22 +479,88 @@ debug =
     Attr.attr (\a -> { a | debug = True })
 
 
-{-| -}
+
+-- Annotations
+
+
+{-| This content will appear inside the `figcaption` for the chart `figure` element.
+-}
+header : List (H.Html msg) -> ChartAttribute msg
+header v =
+    Attr.attr (\a -> { a | header = Just v })
+
+
+{-| This content will appear below all content, while respecting the annotations padding.
+-}
+footer : List (H.Html msg) -> ChartAttribute msg
+footer v =
+    Attr.attr (\a -> { a | footer = Just v })
+
+
+{-| Displays the legends below the header (if present) and above the chart.
+-}
+topLegends : ChartAttribute msg
+topLegends =
+    Attr.attr (\a -> { a | legendDisplay = W.Chart.Internal.TopLegends })
+
+
+{-| Displays the legends above the footer (if present) and below the chart.
+-}
 bottomLegends : ChartAttribute msg
 bottomLegends =
     Attr.attr (\a -> { a | legendDisplay = W.Chart.Internal.BottomLegends })
 
 
 {-| -}
-topLegends : ChartAttribute msg
-topLegends =
-    Attr.attr (\a -> { a | legendDisplay = W.Chart.Internal.TopLegends })
+annotationsPadding : Float -> ChartAttribute msg
+annotationsPadding v =
+    withAnnotationsPadding (\a -> { a | top = Just v, bottom = Just v })
 
 
 {-| -}
+annotationsPaddingX : Float -> ChartAttribute msg
+annotationsPaddingX v =
+    withAnnotationsPadding (\a -> { a | left = Just v, right = Just v })
+
+
+{-| -}
+annotationsTopPadding : Float -> ChartAttribute msg
+annotationsTopPadding v =
+    withAnnotationsPadding (\a -> { a | top = Just v })
+
+
+{-| -}
+annotationsBottomPadding : Float -> ChartAttribute msg
+annotationsBottomPadding v =
+    withAnnotationsPadding (\a -> { a | bottom = Just v })
+
+
+{-| -}
+annotationsLeftPadding : Float -> ChartAttribute msg
+annotationsLeftPadding v =
+    withAnnotationsPadding (\a -> { a | left = Just v })
+
+
+{-| -}
+annotationsRightPadding : Float -> ChartAttribute msg
+annotationsRightPadding v =
+    withAnnotationsPadding (\a -> { a | right = Just v })
+
+
+withAnnotationsPadding : (W.Chart.Internal.PaddingOverride -> W.Chart.Internal.PaddingOverride) -> ChartAttribute msg
+withAnnotationsPadding fn =
+    Attr.attr (\a -> { a | annotationsPadding = fn a.annotationsPadding })
+
+
+{-| Defines the space between legends and the header or footer.
+-}
 legendPadding : Float -> ChartAttribute msg
 legendPadding v =
     Attr.attr (\a -> { a | legendPadding = Just v })
+
+
+
+-- Labels
 
 
 {-| -}
@@ -492,6 +575,10 @@ dontAutoHideLabels =
     Attr.attr (\attrs -> { attrs | labelsAutoHide = False })
 
 
+
+-- Interactivity
+
+
 {-| -}
 onMouseEnterChart : msg -> ChartAttribute msg
 onMouseEnterChart fn =
@@ -501,6 +588,24 @@ onMouseEnterChart fn =
 {-| -}
 onMouseLeaveChart : msg -> ChartAttribute msg
 onMouseLeaveChart fn =
+    Attr.attr (\a -> { a | onMouseLeave = Just fn })
+
+
+{-| -}
+onClick : ({ x : Float, y : Maybe Float } -> point -> msg) -> HoverAttribute msg point
+onClick fn =
+    Attr.attr (\a -> { a | onClick = Just fn })
+
+
+{-| -}
+onMouseEnter : ({ x : Float, y : Maybe Float } -> point -> msg) -> HoverAttribute msg point
+onMouseEnter fn =
+    Attr.attr (\a -> { a | onMouseEnter = Just fn })
+
+
+{-| -}
+onMouseLeave : ({ x : Float, y : Maybe Float } -> point -> msg) -> HoverAttribute msg point
+onMouseLeave fn =
     Attr.attr (\a -> { a | onMouseLeave = Just fn })
 
 
@@ -521,24 +626,6 @@ withHover =
         (\tooltipAttrs (W.Chart.Internal.Config cfg) ->
             W.Chart.Internal.Config { cfg | hover = Just tooltipAttrs }
         )
-
-
-{-| -}
-onClick : ({ x : Float, y : Maybe Float } -> point -> msg) -> HoverAttribute msg point
-onClick fn =
-    Attr.attr (\a -> { a | onClick = Just fn })
-
-
-{-| -}
-onMouseEnter : ({ x : Float, y : Maybe Float } -> point -> msg) -> HoverAttribute msg point
-onMouseEnter fn =
-    Attr.attr (\a -> { a | onMouseEnter = Just fn })
-
-
-{-| -}
-onMouseLeave : ({ x : Float, y : Maybe Float } -> point -> msg) -> HoverAttribute msg point
-onMouseLeave fn =
-    Attr.attr (\a -> { a | onMouseLeave = Just fn })
 
 
 {-| -}
@@ -718,20 +805,15 @@ view widgets (W.Chart.Internal.Config cfg) =
                         [ ( "--w-charts-font-sm", W.Chart.Internal.toPx d.ctx.fontSize.sm )
                         , ( "--w-charts-font-md", W.Chart.Internal.toPx d.ctx.fontSize.md )
                         , ( "--w-charts-font-lg", W.Chart.Internal.toPx d.ctx.fontSize.lg )
-                        , ( "padding-left", W.Chart.Internal.toPx d.spacings.padding.left )
-                        , ( "padding-right", W.Chart.Internal.toPx d.spacings.padding.right )
                         ]
                     ]
-                    [ case cfg.attrs.legendDisplay of
-                        W.Chart.Internal.TopLegends ->
-                            viewLegends d
-
-                        _ ->
-                            H.text ""
+                    [ viewTopAnnotations d
                     , H.div
                         [ W.Theme.styleList
                             [ ( "padding-top", W.Chart.Internal.toPx d.spacings.padding.top )
                             , ( "padding-bottom", W.Chart.Internal.toPx d.spacings.padding.bottom )
+                            , ( "padding-left", W.Chart.Internal.toPx d.spacings.padding.left )
+                            , ( "padding-right", W.Chart.Internal.toPx d.spacings.padding.right )
                             ]
                         , W.Chart.Internal.maybeAttr cfg.attrs.onMouseEnter HE.onMouseEnter
                         , W.Chart.Internal.maybeAttr cfg.attrs.onMouseLeave HE.onMouseLeave
@@ -740,19 +822,22 @@ view widgets (W.Chart.Internal.Config cfg) =
                             [ SA.viewBox 0 0 d.spacings.chart.width d.spacings.chart.height
                             , SA.class [ "w__charts--svg" ]
                             ]
-                            [ -- Grid
-                              viewYGrid renderData
-                            , viewXGrid d.ctx
+                            [ S.g
+                                [ SA.class [ "w__charts--axis" ] ]
+                                [ -- Grid
+                                  viewYGrid renderData
+                                , viewXGrid d.ctx
 
-                            -- Labels
-                            , viewAxisLabels renderData
+                                -- Labels
+                                , viewAxisLabels renderData
 
-                            -- Axis
-                            , viewYAxis renderData
-                            , viewZAxis renderData
+                                -- Axis
+                                , viewYAxis renderData
+                                , viewZAxis renderData
+                                , viewXAxis d.ctx
+                                ]
 
                             -- Elements & Hover
-                            , viewXAxis d.ctx
                             , viewWidgets "bg" .background renderData widgets
                             , viewWidgets "main" .main renderData widgets
                             , viewWidgets "fg" .foreground renderData widgets
@@ -765,37 +850,120 @@ view widgets (W.Chart.Internal.Config cfg) =
                             , viewHoverAndLabels cfg d.ctx widgets
                             ]
                         ]
-                    , case cfg.attrs.legendDisplay of
-                        W.Chart.Internal.BottomLegends ->
-                            viewLegends d
-
-                        _ ->
-                            H.text ""
+                    , viewBottomAnnotations d
                     ]
             )
         |> Maybe.withDefault (H.text "")
 
 
+viewTopAnnotations : RenderDataFull msg x y z -> H.Html msg
+viewTopAnnotations renderData =
+    let
+        paddingLeft_ : String
+        paddingLeft_ =
+            renderData.attrs.annotationsPadding.left
+                |> Maybe.withDefault renderData.spacings.padding.left
+                |> W.Chart.Internal.toPx
+
+        paddingRight_ : String
+        paddingRight_ =
+            renderData.attrs.annotationsPadding.right
+                |> Maybe.withDefault renderData.spacings.padding.right
+                |> W.Chart.Internal.toPx
+
+        paddingTop_ : String
+        paddingTop_ =
+            renderData.attrs.annotationsPadding.top
+                |> Maybe.withDefault renderData.spacings.padding.top
+                |> W.Chart.Internal.toPx
+    in
+    case ( renderData.attrs.legendDisplay == W.Chart.Internal.TopLegends, renderData.attrs.header ) of
+        ( False, Nothing ) ->
+            H.text ""
+
+        ( _, _ ) ->
+            H.div
+                [ HA.class "w__charts__annotations"
+                , HA.style "padding" (paddingTop_ ++ " " ++ paddingRight_ ++ " 0 " ++ paddingLeft_)
+                ]
+                [ case renderData.attrs.header of
+                    Just header_ ->
+                        H.figcaption
+                            [ renderData.attrs.legendPadding
+                                |> Maybe.map
+                                    (\legendPadding_ ->
+                                        HA.style "padding-bottom" (W.Chart.Internal.toPx legendPadding_)
+                                    )
+                                |> Maybe.withDefault (HA.class "")
+                            ]
+                            header_
+
+                    Nothing ->
+                        H.text ""
+                , if renderData.attrs.legendDisplay == W.Chart.Internal.TopLegends then
+                    viewLegends renderData
+
+                  else
+                    H.text ""
+                ]
+
+
+viewBottomAnnotations : RenderDataFull msg x y z -> H.Html msg
+viewBottomAnnotations renderData =
+    let
+        paddingLeft_ : String
+        paddingLeft_ =
+            renderData.attrs.annotationsPadding.left
+                |> Maybe.withDefault renderData.spacings.padding.left
+                |> W.Chart.Internal.toPx
+
+        paddingRight_ : String
+        paddingRight_ =
+            renderData.attrs.annotationsPadding.right
+                |> Maybe.withDefault renderData.spacings.padding.right
+                |> W.Chart.Internal.toPx
+
+        paddingBottom_ : String
+        paddingBottom_ =
+            renderData.attrs.annotationsPadding.bottom
+                |> Maybe.withDefault renderData.spacings.padding.bottom
+                |> W.Chart.Internal.toPx
+    in
+    case ( renderData.attrs.legendDisplay == W.Chart.Internal.BottomLegends, renderData.attrs.footer ) of
+        ( False, Nothing ) ->
+            H.text ""
+
+        ( _, _ ) ->
+            H.div
+                [ HA.class "w__charts__annotations"
+                , HA.style "padding" ("0 " ++ paddingRight_ ++ " " ++ paddingBottom_ ++ " " ++ paddingLeft_)
+                ]
+                [ if renderData.attrs.legendDisplay == W.Chart.Internal.BottomLegends then
+                    viewLegends renderData
+
+                  else
+                    H.text ""
+                , case renderData.attrs.footer of
+                    Just footer_ ->
+                        H.footer
+                            [ renderData.attrs.legendPadding
+                                |> Maybe.map
+                                    (\legendPadding_ ->
+                                        HA.style "padding-top" (W.Chart.Internal.toPx legendPadding_)
+                                    )
+                                |> Maybe.withDefault (HA.class "")
+                            ]
+                            footer_
+
+                    Nothing ->
+                        H.text ""
+                ]
+
+
 viewLegends : RenderDataFull msg x y z -> H.Html msg
 viewLegends renderData =
     H.div
-        [ HA.class "w__charts__legends"
-        , case renderData.attrs.legendDisplay of
-            W.Chart.Internal.TopLegends ->
-                renderData.attrs.legendPadding
-                    |> Maybe.withDefault renderData.spacings.padding.top
-                    |> W.Chart.Internal.toPx
-                    |> HA.style "padding-top"
-
-            W.Chart.Internal.BottomLegends ->
-                renderData.attrs.legendPadding
-                    |> Maybe.withDefault renderData.spacings.padding.bottom
-                    |> W.Chart.Internal.toPx
-                    |> HA.style "padding-bottom"
-
-            W.Chart.Internal.NoLegends ->
-                HA.class "hidden"
-        ]
+        [ HA.class "w__charts__legends" ]
         [ renderData.y
             |> Maybe.map (viewAxisLegends renderData renderData.ctx.y)
             |> Maybe.withDefault (H.text "")
@@ -1034,7 +1202,6 @@ viewAxisLabels (W.Chart.Internal.RenderData d) =
             |> Maybe.map
                 (\label ->
                     W.Chart.Internal.viewTranslate
-                        -- { x =
                         { y = d.spacings.chart.height * 0.5
                         , x =
                             d.attrs.yAxis.labelPadding
@@ -1286,6 +1453,7 @@ globalStyles =
             .w__charts,
             .w__charts text {
                 font-family: var(--theme-font-text), sans-serif;
+                font-weight: 600;
                 line-height: 0;
             }
 
@@ -1441,10 +1609,14 @@ globalStyles =
 
             /* Axis & Labels */
 
-            .w__charts .tick text {
-                fill: """ ++ W.Theme.Color.baseTextSubtle ++ """;
+            .w__charts--axis text {
                 font-family: var(--theme-font-text), sans-serif;
                 font-size: var(--w-charts-font-sm);
+                letter-spacing: 0.05em;
+            }
+
+            .w__charts .tick text {
+                fill: """ ++ W.Theme.Color.baseTextSubtle ++ """;
             }
 
             .w__charts--x-axis path.domain,
@@ -1459,6 +1631,35 @@ globalStyles =
             .w__charts--z-axis .tick line {
                 stroke: """ ++ W.Theme.Color.baseTintSubtle ++ """;
             }
+
+            /* Labels */
+
+            .w__charts--labels {
+                opacity: 0.0;
+                animation: w__charts--fade 0.4s ease-out forwards;
+                animation-delay: 0.2s;
+            }
+
+            .w__charts--labels text {
+                fill: color-mix(in srgb, var(--color), """ ++ W.Theme.Color.baseText ++ """ 50%);
+                stroke: """ ++ W.Theme.Color.baseBg ++ """;
+                stroke-width: 3px;
+                stroke-linejoin: bevel;
+                font-weight: 600;
+                paint-order: stroke;
+                font-family: var(--theme-font-text), sans-serif;
+                font-size: var(--w-charts-font-sm);
+                letter-spacing: 0.05em;
+            }
+
+            .w__charts--labels .w__m-stroke text {
+                fill: #000;
+                stroke: color-mix(in srgb, var(--color), #fff 25%);
+            }
+
+            /* Annotations */
+
+            .w__charts__annotations {}
 
             /* Legends */
 

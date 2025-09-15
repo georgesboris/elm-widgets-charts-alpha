@@ -18,6 +18,7 @@ module W.Chart.Internal exposing
     , HoverGrouping(..)
     , LegendDisplay(..)
     , Padding
+    , PaddingOverride
     , RenderAxisX
     , RenderAxisYZ
     , RenderData(..)
@@ -145,12 +146,6 @@ type alias RenderAxisYZ a =
     , showAxis : Bool
     , showGrid : Bool
     }
-
-
-type LegendDisplay
-    = NoLegends
-    | TopLegends
-    | BottomLegends
 
 
 {-| -}
@@ -697,12 +692,10 @@ type alias Attributes msg =
     , xAxis : AxisAttributes
     , yAxis : AxisAttributes
     , zAxis : AxisAttributes
-    , padding :
-        { top : Float
-        , bottom : Float
-        , left : Float
-        , right : Float
-        }
+    , padding : Padding
+    , header : Maybe (List (H.Html msg))
+    , footer : Maybe (List (H.Html msg))
+    , annotationsPadding : PaddingOverride
     , legendDisplay : LegendDisplay
     , legendPadding : Maybe Float
     , showLegendAxisLabels : Bool
@@ -722,6 +715,12 @@ type StackType
     = NotStacked
     | Stacked
     | Distribution
+
+
+type LegendDisplay
+    = NoLegends
+    | TopLegends
+    | BottomLegends
 
 
 type AxisType
@@ -810,6 +809,14 @@ defaultAttrs =
         , right = 80
         , bottom = 64
         }
+    , header = Nothing
+    , footer = Nothing
+    , annotationsPadding =
+        { top = Nothing
+        , bottom = Nothing
+        , left = Nothing
+        , right = Nothing
+        }
     , legendPadding = Nothing
     , legendDisplay = NoLegends
     , showLegendAxisLabels = False
@@ -825,6 +832,14 @@ type alias Padding =
     , right : Float
     , left : Float
     , bottom : Float
+    }
+
+
+type alias PaddingOverride =
+    { top : Maybe Float
+    , right : Maybe Float
+    , left : Maybe Float
+    , bottom : Maybe Float
     }
 
 

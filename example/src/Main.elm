@@ -66,6 +66,9 @@ main =
                     [ W.Chart.fromXYZ
                         [ W.Chart.dontAutoHideLabels
                         , W.Chart.topLegends
+                        , W.Chart.legendPadding 10
+                        , W.Chart.annotationsPadding 30
+                        , W.Chart.header [ H.h1 [ HA.style "color" "white" ] [ H.text "My Chart" ] ]
                         , W.Chart.paddingLeft 80
                         , W.Chart.onMouseLeaveChart OnMouseLeaveChart
                         ]
@@ -120,7 +123,10 @@ main =
                             , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
                             ]
                         |> W.Chart.view
-                            [ W.Chart.Bar.fromYZ [ W.Chart.Bar.showLabels, W.Chart.Bar.labelsAsPercentages ]
+                            [ 
+                            --   W.Chart.Line.fromZ []
+                            -- , W.Chart.Bar.fromY [ W.Chart.Bar.showLabels ]
+                             W.Chart.Bar.fromYZ [ W.Chart.Bar.showLabels, W.Chart.Bar.labelsAsPercentages ]
                             , W.Chart.Tooltip.fromYZ
                                 [ W.Chart.Tooltip.yAxisLabel [ H.text "YYY" ]
                                 , W.Chart.Tooltip.headerValue

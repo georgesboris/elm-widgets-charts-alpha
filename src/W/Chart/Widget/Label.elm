@@ -1,6 +1,7 @@
 module W.Chart.Widget.Label exposing
     ( view, viewList, viewBinsList
-    , format, formatAsPercentage, formatWithList, inside, centered
+    , inside, centered, withStroke
+    , format, formatAsPercentage, formatWithList
     , formatStack
     , Attribute
     )
@@ -8,7 +9,8 @@ module W.Chart.Widget.Label exposing
 {-|
 
 @docs view, viewList, viewBinsList
-@docs format, formatAsPercentage, formatWithList, inside, centered
+@docs inside, centered, withStroke
+@docs format, formatAsPercentage, formatWithList
 @docs formatStack
 @docs Attribute
 
@@ -16,8 +18,8 @@ module W.Chart.Widget.Label exposing
 
 import Attr
 import Html as H
+import Html.Attributes as HA
 import Scale
-import Svg.Attributes
 import TypedSvg as S
 import TypedSvg.Attributes as SA
 import TypedSvg.Attributes.InPx as SAP
@@ -39,6 +41,7 @@ type alias Attribute =
 
 type alias Attributes =
     { position : Position
+    , stroke : Bool
     , format : Maybe (List Float -> Float -> String)
     , formatStack : Maybe (List Float -> String)
     }
@@ -47,6 +50,7 @@ type alias Attributes =
 defaultAttrs : Attributes
 defaultAttrs =
     { position = Outside
+    , stroke = False
     , format = Nothing
     , formatStack = Nothing
     }
@@ -68,6 +72,12 @@ inside =
 centered : Attribute
 centered =
     Attr.attr (\attr -> { attr | position = Center })
+
+
+{-| -}
+withStroke : Attribute
+withStroke =
+    Attr.attr (\attr -> { attr | stroke = True })
 
 
 {-| -}
@@ -124,31 +134,23 @@ view :
     { x : Float
     , y : Float
     , ctx : W.Chart.Context x y z
+    , stroke : Bool
     , color : String
     , label : String
     }
     -> SC.Svg msg
 view props =
     S.g
-        []
+        [ HA.attribute "style" ("--color:" ++ props.color)
+        , if props.stroke then
+            SA.class [ "w__m-stroke" ]
+
+          else
+            SA.class []
+        ]
         [ S.text_
             [ SAP.x props.x
             , SAP.y props.y
-            , SAP.strokeWidth 4
-            , Svg.Attributes.fill props.color
-            , Svg.Attributes.stroke W.Theme.Color.baseBg
-            , Svg.Attributes.style "paint-order:stroke"
-            , SAP.fontSize props.ctx.fontSize.lg
-            , SA.textAnchor ST.AnchorMiddle
-            ]
-            [ SC.text props.label
-            ]
-        , S.text_
-            [ SAP.x props.x
-            , SAP.y props.y
-            , SAP.strokeWidth 4
-            , Svg.Attributes.fill W.Theme.Color.baseText
-            , Svg.Attributes.fillOpacity "0.6"
             , SAP.fontSize props.ctx.fontSize.lg
             , SA.textAnchor ST.AnchorMiddle
             ]
@@ -379,7 +381,7 @@ viewBinsListPoint attrs props =
                                         xStart + Scale.convert props.binScale index
                             in
                             viewPoint
-                                { attrs = { attrs | position = position }
+                                { attrs = { attrs | position = position, stroke = position /= Outside }
                                 , ctx = props.ctx
                                 , x = x
                                 , pointList = yzPoints
@@ -510,6 +512,7 @@ viewPoint props =
             { ctx = props.ctx
             , x = props.x
             , y = y
+            , stroke = props.attrs.stroke
             , color = props.point.color
             , label = props.format props.point
             }
