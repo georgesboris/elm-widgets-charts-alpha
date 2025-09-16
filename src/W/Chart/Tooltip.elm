@@ -1,6 +1,9 @@
 module W.Chart.Tooltip exposing
     ( fromY, fromZ, fromYZ
-    , formatByX, headerValue, yAxisLabel, zAxisLabel, axisValue, Attribute
+    , formatByX
+    , headerValue, yAxisLabel, zAxisLabel
+    , yAxisValue, zAxisValue, axisValue
+    , Attribute
     , viewCustom
     )
 
@@ -8,7 +11,10 @@ module W.Chart.Tooltip exposing
 
 @docs fromY, fromZ, fromYZ
 
-@docs formatByX, headerValue, yAxisLabel, zAxisLabel, axisValue, Attribute
+@docs formatByX
+@docs headerValue, yAxisLabel, zAxisLabel
+@docs yAxisValue, zAxisValue, axisValue
+@docs Attribute
 
 @docs viewCustom
 
@@ -131,7 +137,19 @@ defaultAttrs =
     }
 
 
-{-| -}
+{-| Useful when formatting based on the entire data for the x points.
+
+    W.Chart.formatByX
+        (\_ points point ->
+            let
+                total : Float
+                total =
+                    sumAt .value points
+            in
+            [ viewPercentage total point.value ]
+        )
+
+-}
 formatByX : (W.Chart.Context x y z -> List W.Chart.RenderDatum -> W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
 formatByX v =
     Attr.attr (\attr -> { attr | format = Just v })
@@ -158,6 +176,34 @@ axisValue v =
                     attr.zConfig
             in
             { attr | yConfig = { yConfig | axisValue = Just v }, zConfig = { zConfig | axisValue = Just v } }
+        )
+
+
+{-| -}
+yAxisValue : (W.Chart.Context x y z -> List W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
+yAxisValue v =
+    Attr.attr
+        (\attr ->
+            let
+                yConfig : AxisConfig msg x y z
+                yConfig =
+                    attr.yConfig
+            in
+            { attr | yConfig = { yConfig | axisValue = Just v } }
+        )
+
+
+{-| -}
+zAxisValue : (W.Chart.Context x y z -> List W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
+zAxisValue v =
+    Attr.attr
+        (\attr ->
+            let
+                zConfig : AxisConfig msg x y z
+                zConfig =
+                    attr.zConfig
+            in
+            { attr | zConfig = { zConfig | axisValue = Just v } }
         )
 
 

@@ -143,6 +143,7 @@ import W.Chart.Internal.Voronoi
 import W.Svg.Attributes
 import W.Theme
 import W.Theme.Color
+import W.Theme.Font
 
 
 {-| -}
@@ -1309,7 +1310,7 @@ viewXGrid ctx =
                         , SAP.y1 0
                         , SAP.y2 ctx.height
                         , SA.strokeWidth (ST.px 1.0)
-                        , Svg.Attributes.stroke W.Theme.Color.tintSubtle
+                        , Svg.Attributes.stroke W.Theme.Color.tint
                         ]
                         []
                 )
@@ -1376,7 +1377,7 @@ viewYAxis (W.Chart.Internal.RenderData d) =
                     , SA.y1 (ST.px d.ctx.y.zero)
                     , SA.y2 (ST.px d.ctx.y.zero)
                     , SA.strokeWidth (ST.px 1.0)
-                    , Svg.Attributes.stroke W.Theme.Color.tintSubtle
+                    , Svg.Attributes.stroke W.Theme.Color.tintStrong
                     ]
                     []
                 ]
@@ -1621,19 +1622,20 @@ globalStyles =
 
             .w__charts .tick text {
                 fill: """ ++ W.Theme.Color.baseTextSubtle ++ """;
+                font-family: """ ++ W.Theme.Font.text ++ """;
             }
 
             .w__charts--x-axis path.domain,
             .w__charts--y-axis path.domain,
             .w__charts--z-axis path.domain {
-                stroke: """ ++ W.Theme.Color.baseTintSubtle ++ """;
+                stroke: """ ++ W.Theme.Color.baseTintStrong ++ """;
                 stroke-width: """ ++ String.fromFloat 1 ++ """px;
             }
 
             .w__charts--x-axis .tick line,
             .w__charts--y-axis .tick line,
             .w__charts--z-axis .tick line {
-                stroke: """ ++ W.Theme.Color.baseTintSubtle ++ """;
+                stroke: """ ++ W.Theme.Color.baseTint ++ """;
             }
 
             /* Labels */

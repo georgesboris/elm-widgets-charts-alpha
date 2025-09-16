@@ -2,6 +2,7 @@
 ## Vis Features
 
 - [ ] Rename `axisLabel` to something else (labels are what appear on top of points)
+- [ ] Labels configuration on W.Chart (format)
 
 - [ ] *!* Lazy layers (interaction vs main chart)
 - [ ] *!* Stateful variation for increased performance
@@ -14,7 +15,7 @@
 - [ ] Safety based on pixel values (padding?)
 - [ ] 0 normalization for log axis?
 
-- [ ] Tooltip as view element (for other usages)
+- [x] Tooltip as view element (for other usages)
 - [ ] Labels
 
 - [ ] Rethink hovers

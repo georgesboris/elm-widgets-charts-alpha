@@ -286,6 +286,7 @@ viewBinsList =
                         in
                         viewBinsListPoint attrs
                             { binScale = props.binScale
+                            , binsCount = binsCount
                             , ctx = props.ctx
                             , axisAttrs = props.ctx.y
                             , x = point.x
@@ -296,6 +297,7 @@ viewBinsList =
                             }
                             ++ viewBinsListPoint attrs
                                 { binScale = props.binScale
+                                , binsCount = binsCount
                                 , ctx = props.ctx
                                 , axisAttrs = props.ctx.z
                                 , x = point.x
@@ -314,6 +316,7 @@ viewBinsListPoint :
     Attributes
     ->
         { binScale : Scale.BandScale Int
+        , binsCount : Int
         , ctx : W.Chart.Context x y z
         , axisAttrs : W.Chart.Internal.RenderAxisYZ a
         , x : W.Chart.Point x
@@ -363,21 +366,33 @@ viewBinsListPoint attrs props =
 
             else
                 attrs.position
+
+        visibleStackStep : Bool
+        visibleStackStep =
+            modBy props.step (props.xIndex + props.offset) == 0
+
+        stackPoint : SC.Svg msg
+        stackPoint =
+            if props.axisAttrs.isStacked && visibleStackStep then
+                viewStackPoint
+                    { attrs = attrs
+                    , ctx = props.ctx
+                    , axisAttrs = props.axisAttrs
+                    , x = xStart
+                    , pointList = List.map (\yz -> yz.render) props.yz
+                    }
+
+            else
+                H.text ""
     in
-    viewStackPoint
-        { attrs = attrs
-        , ctx = props.ctx
-        , axisAttrs = props.axisAttrs
-        , x = xStart
-        , pointList = List.map (\yz -> yz.render) props.yz
-        }
+    stackPoint
         :: (props.yz
                 |> List.indexedMap
                     (\index point ->
                         let
                             step : Int
                             step =
-                                (props.xIndex + 1) * (props.offset + index)
+                                (props.xIndex * props.binsCount) + (props.offset + index)
 
                             visibleHeight : Bool
                             visibleHeight =
@@ -385,7 +400,11 @@ viewBinsListPoint attrs props =
 
                             visibleStep : Bool
                             visibleStep =
-                                modBy props.step step == 0
+                                if props.axisAttrs.isStacked then
+                                    visibleStackStep
+
+                                else
+                                    modBy props.step step == 0
                         in
                         if visibleHeight && visibleStep then
                             let
@@ -414,7 +433,7 @@ viewBinsListPoint attrs props =
 
 labelMinWidth : Int
 labelMinWidth =
-    40
+    50
 
 
 toStep : W.Chart.Context x y z -> Int -> Int
