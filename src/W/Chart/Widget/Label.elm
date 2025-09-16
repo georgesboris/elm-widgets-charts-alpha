@@ -438,7 +438,7 @@ labelMinWidth =
 
 toStep : W.Chart.Context x y z -> Int -> Int
 toStep ctx numPoints =
-    (labelMinWidth // (Debug.log "1" <| Basics.floor ctx.width // numPoints))
+    (labelMinWidth // Basics.floor ctx.width // numPoints)
         |> toFloat
         |> round
         |> max 1
