@@ -433,7 +433,7 @@ viewBinsListPoint attrs props =
 
 labelMinWidth : Int
 labelMinWidth =
-    50
+    80
 
 
 toStep : W.Chart.Context x y z -> Int -> Int
