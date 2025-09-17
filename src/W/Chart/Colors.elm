@@ -4,7 +4,6 @@ module W.Chart.Colors exposing
     , mixA, mixB, mixC, mixD, mixE, mixCool, mixWarm
     , amber, blue, cyan, sky, emerald, gray, lime, green, indigo, orange, pink, purple, red, rose, teal, violet, yellow
     , toColors, toColorWithShades
-    , mix
     )
 
 {-| Accessible colors based on <https://www.s-ings.com/scratchpad/oklch-smooth/> .
@@ -36,10 +35,6 @@ module W.Chart.Colors exposing
 # Palette Utilities
 
 @docs toColors, toColorWithShades
-
-Deprecated:
-
-@docs mix
 
 -}
 
@@ -450,28 +445,6 @@ mixD =
 mixE : Palette
 mixE =
     fromColorSets5 purples yellows blues reds greens
-
-
-{-| -}
-mix : Palette
-mix =
-    fromList colorIndigo
-        [ colorLime
-        , colorOrange
-        , colorPink
-        , colorTeal
-        , colorAmber
-        , colorCyan
-        , colorGreen
-        , colorRose
-        , colorViolet
-        , colorEmerald
-        , colorPurple
-        , colorRed
-        , colorSky
-        , colorYellow
-        , colorBlue
-        ]
 
 
 

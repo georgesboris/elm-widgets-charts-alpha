@@ -68,10 +68,10 @@ main =
                         [ W.Chart.width 960
                         , W.Chart.dontAutoHideLabels
                         , W.Chart.topLegends
-                        , W.Chart.legendPadding 10
+                        , W.Chart.legendsPadding 10
                         , W.Chart.annotationsPadding 30
-                        , W.Chart.header [ H.h1 [ HA.style "color" "white" ] [ H.text "My Chart" ] ]
-                        , W.Chart.footer [ H.p [ HA.style "color" "white" ] [ H.text "My Chart" ] ]
+                        , W.Chart.header [ H.h1 [] [ H.text "My Chart" ] ]
+                        , W.Chart.footer [ H.p [ HA.style "color" W.Theme.Color.baseTextSubtle ] [ H.text "Some footer information." ] ]
                         , W.Chart.paddingLeft 80
                         , W.Chart.onMouseLeaveChart OnMouseLeaveChart
                         ]
@@ -82,7 +82,7 @@ main =
                                 , W.Chart.axisLabelPadding 60
                                 ]
                                 { data =
-                                    List.range 1 8
+                                    List.range 1 4
                                         |> List.map (\i -> Date.fromOrdinalDate 2023 i)
                                 , toLabel = Date.format "MMM d"
                                 }
@@ -92,6 +92,7 @@ main =
                                 , W.Chart.axisLabelPadding 60
                                 -- , W.Chart.stacked
                                 , W.Chart.format (formatDecimals 4)
+                                , W.Chart.formatLegends (\data -> [ H.text (data.label ++ "!!") ])
                                 , W.Chart.formatStack
                                     (\xs ->
                                         xs
@@ -210,7 +211,8 @@ toValue fn a x =
 viewWrapper : Model -> List (H.Html msg) -> H.Html msg
 viewWrapper model children =
     H.div
-        [ HA.style "background" W.Theme.Color.baseBg
+        [ HA.style "background" W.Theme.Color.baseBgSubtle
+        , HA.style "color" W.Theme.Color.baseText
         , HA.style "min-height" "100vh"
         , HA.style "padding" "20px"
         , HA.style "display" "flex"
@@ -218,7 +220,10 @@ viewWrapper model children =
         , HA.style "justify-content" "center"
         ]
         [ W.Chart.globalStyles
-        , W.Styles.view [ W.Styles.darkTheme ]
+        , W.Theme.globalTheme
+            { theme = lightTheme
+            , darkMode = W.Theme.noDarkMode
+            }
         , globalStyles
         , viewColor ( 20, 20 ) (Maybe.map Tuple.second model.onClick)
         , viewColor ( 80, 20 ) (Maybe.map Tuple.second model.onHover)
@@ -401,3 +406,221 @@ darkTheme =
             , textSubtle = Color.rgb255 170 113 107
             , shadow = Color.rgb255 66 0 0
             }
+
+lightTheme : W.Theme.Theme
+lightTheme =
+    W.Theme.lightTheme
+        |> W.Theme.withHeadingFont "Inter, system-ui, sans-serif"
+        |> W.Theme.withTextFont "Inter, system-ui, sans-serif"
+        |> W.Theme.withBaseColor
+            { bg = primary100
+            , bgSubtle = primary175
+
+            -- Tint
+            , tintSubtle = primary225
+            , tint = primary250
+            , tintStrong = primary300
+
+            -- Accent
+            , accentSubtle = primary250
+            , accent = primary300
+            , accentStrong = primary350
+
+            -- Solid
+            , solidSubtle = primary375
+            , solid = primary400
+            , solidStrong = primary425
+            , solidText = Color.white
+
+            -- Text
+            , text = primary750
+            , textSubtle = primary450
+
+            -- Shadow
+            , shadow = primary750
+            }
+        |> W.Theme.withPrimaryColor
+            { bg = Color.white
+            , bgSubtle = primary100
+
+            -- Tint
+            , tintSubtle = primary150
+            , tint = primary175
+            , tintStrong = primary200
+
+            -- Accent
+            , accentSubtle = primary250
+            , accent = primary300
+            , accentStrong = primary350
+
+            -- Solid
+            , solidSubtle = primary625
+            , solid = primary700
+            , solidStrong = primary800
+            , solidText = Color.white
+
+            -- Text
+            , text = primary750
+            , textSubtle = primary450
+
+            -- Shadow
+            , shadow = primary750
+            }
+        |> W.Theme.withSuccessColor
+            { grass
+                | bg = Color.rgb255 239 242 239
+                , bgSubtle = Color.rgb255 232 238 233
+
+                -- Tint
+                , tintSubtle = Color.rgb255 219 233 220
+                , tint = Color.rgb255 203 226 205
+                , tintStrong = Color.rgb255 185 217 188
+
+                -- Accent
+                , accentSubtle = Color.rgb255 185 217 188
+                , accent = Color.rgb255 162 206 166
+                , accentStrong = Color.rgb255 132 190 138
+            }
+        |> W.Theme.withWarningColor
+            { bg = Color.rgb255 242 241 239
+            , bgSubtle = Color.rgb255 245 237 221
+            , tintSubtle = Color.rgb255 253 229 181
+            , tint = Color.rgb255 254 218 146
+            , tintStrong = Color.rgb255 253 212 128
+            , accentSubtle = Color.rgb255 252 206 111
+            , accent = Color.rgb255 236 194 107
+            , accentStrong = Color.rgb255 216 177 93
+            , solidSubtle = Color.rgb255 255 208 97
+            , solid = Color.rgb255 255 197 61
+            , solidStrong = Color.rgb255 255 186 24
+            , solidText = Color.rgb255 79 52 34
+            , textSubtle = Color.rgb255 171 100 0
+            , text = Color.rgb255 79 52 34
+            , shadow = Color.rgb255 171 100 0
+            }
+        |> W.Theme.withDangerColor
+            { bg = Color.rgb255 243 240 240
+            , bgSubtle = Color.rgb255 242 235 234
+            , tintSubtle = Color.rgb255 241 222 220
+            , tint = Color.rgb255 247 205 202
+            , tintStrong = Color.rgb255 244 190 187
+            , accentSubtle = Color.rgb255 244 190 187
+            , accent = Color.rgb255 237 174 170
+            , accentStrong = Color.rgb255 227 153 149
+            , solidSubtle = Color.rgb255 236 83 88
+            , solid = Color.rgb255 229 72 77
+            , solidStrong = Color.rgb255 220 62 66
+            , solidText = Color.rgb255 255 255 255
+            , textSubtle = Color.rgb255 206 44 49
+            , text = Color.rgb255 100 23 35
+            , shadow = Color.rgb255 206 44 49
+            }
+
+primary100 : Color.Color
+primary100 =
+    Color.rgb255 243 244 246
+
+
+primary150 : Color.Color
+primary150 =
+    Color.rgb255 235 237 240
+
+
+primary175 : Color.Color
+primary175 =
+    Color.rgb255 229 231 235
+
+
+primary200 : Color.Color
+primary200 =
+    Color.rgb255 223 225 230
+
+
+primary225 : Color.Color
+primary225 =
+    Color.rgb255 220 222 227
+
+
+primary250 : Color.Color
+primary250 =
+    Color.rgb255 216 219 225
+
+
+primary300 : Color.Color
+primary300 =
+    Color.rgb255 206 210 217
+
+
+primary350 : Color.Color
+primary350 =
+    Color.rgb255 180 184 192
+
+
+primary375 : Color.Color
+primary375 =
+    Color.rgb255 169 174 183
+
+
+primary400 : Color.Color
+primary400 =
+    Color.rgb255 157 163 174
+
+
+primary425 : Color.Color
+primary425 =
+    Color.rgb255 144 151 162
+
+
+primary450 : Color.Color
+primary450 =
+    Color.rgb255 132 138 150
+
+
+primary625 : Color.Color
+primary625 =
+    Color.rgb255 75 82 93
+
+
+primary700 : Color.Color
+primary700 =
+    Color.rgb255 48 54 62
+
+
+primary725 : Color.Color
+primary725 =
+    Color.rgb255 45 50 58
+
+
+primary750 : Color.Color
+primary750 =
+    Color.rgb255 41 46 54
+
+
+primary800 : Color.Color
+primary800 =
+    Color.rgb255 36 41 48
+
+
+primary850 : Color.Color
+primary850 =
+    Color.rgb255 30 35 41
+
+{-| -}
+grass : W.Theme.Color.ColorScale
+grass =
+    { bg = Color.rgb255 251 254 251
+    , bgSubtle = Color.rgb255 245 251 245
+    , tintSubtle = Color.rgb255 233 246 233
+    , tint = Color.rgb255 218 241 219
+    , tintStrong = Color.rgb255 201 232 202
+    , accentSubtle = Color.rgb255 178 221 181
+    , accent = Color.rgb255 148 206 154
+    , accentStrong = Color.rgb255 101 186 116
+    , solidSubtle = Color.rgb255 79 177 97
+    , solid = Color.rgb255 70 167 88
+    , solidStrong = Color.rgb255 62 155 79
+    , solidText = Color.rgb255 255 255 255
+    , textSubtle = Color.rgb255 42 126 59
+    , text = Color.rgb255 32 60 37
+    , shadow = Color.rgb255 42 126 59
+    }

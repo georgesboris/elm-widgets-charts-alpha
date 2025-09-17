@@ -113,8 +113,8 @@ type alias Attribute msg x y z point =
 
 
 type alias Attributes msg x y z point =
-    { format : Maybe (W.Chart.Context x y z -> List W.Chart.RenderDatum -> W.Chart.RenderDatum -> List (H.Html msg))
-    , headerValue : Maybe (W.Chart.Context x y z -> List W.Chart.RenderDatum -> List (H.Html msg))
+    { format : Maybe (W.Chart.Context msg x y z -> List W.Chart.RenderDatum -> W.Chart.RenderDatum -> List (H.Html msg))
+    , headerValue : Maybe (W.Chart.Context msg x y z -> List W.Chart.RenderDatum -> List (H.Html msg))
     , yConfig : AxisConfig msg x y z
     , zConfig : AxisConfig msg x y z
     , other : Maybe point
@@ -123,7 +123,7 @@ type alias Attributes msg x y z point =
 
 type alias AxisConfig msg x y z =
     { axisLabel : Maybe (List (H.Html msg))
-    , axisValue : Maybe (W.Chart.Context x y z -> List W.Chart.RenderDatum -> List (H.Html msg))
+    , axisValue : Maybe (W.Chart.Context msg x y z -> List W.Chart.RenderDatum -> List (H.Html msg))
     }
 
 
@@ -150,19 +150,19 @@ defaultAttrs =
         )
 
 -}
-formatByX : (W.Chart.Context x y z -> List W.Chart.RenderDatum -> W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
+formatByX : (W.Chart.Context msg x y z -> List W.Chart.RenderDatum -> W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
 formatByX v =
     Attr.attr (\attr -> { attr | format = Just v })
 
 
 {-| -}
-headerValue : (W.Chart.Context x y z -> List W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
+headerValue : (W.Chart.Context msg x y z -> List W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
 headerValue v =
     Attr.attr (\attr -> { attr | headerValue = Just v })
 
 
 {-| -}
-axisValue : (W.Chart.Context x y z -> List W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
+axisValue : (W.Chart.Context msg x y z -> List W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
 axisValue v =
     Attr.attr
         (\attr ->
@@ -180,7 +180,7 @@ axisValue v =
 
 
 {-| -}
-yAxisValue : (W.Chart.Context x y z -> List W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
+yAxisValue : (W.Chart.Context msg x y z -> List W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
 yAxisValue v =
     Attr.attr
         (\attr ->
@@ -194,7 +194,7 @@ yAxisValue v =
 
 
 {-| -}
-zAxisValue : (W.Chart.Context x y z -> List W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
+zAxisValue : (W.Chart.Context msg x y z -> List W.Chart.RenderDatum -> List (H.Html msg)) -> Attribute msg x y z point
 zAxisValue v =
     Attr.attr
         (\attr ->
@@ -259,7 +259,7 @@ viewCustom props =
 
 viewX :
     Attributes msg x y z point
-    -> W.Chart.Internal.Context x y z
+    -> W.Chart.Internal.Context msg x y z
     -> W.Chart.Point x
     -> List W.Chart.RenderDatum
     -> H.Html msg
@@ -281,8 +281,8 @@ viewX attrs ctx x yzPoints =
 viewYZ :
     Attributes msg x y z point
     -> AxisConfig msg x y z
-    -> W.Chart.Internal.Context x y z
-    -> W.Chart.Internal.RenderAxisYZ a
+    -> W.Chart.Internal.Context msg x y z
+    -> W.Chart.Internal.RenderAxisYZ msg a
     -> List (W.Chart.Internal.DataPoint a)
     -> H.Html msg
 viewYZ attrs axis ctx axisAttrs dataPoints =
@@ -302,8 +302,8 @@ viewYZ attrs axis ctx axisAttrs dataPoints =
 
 viewAxisHeader :
     AxisConfig msg x y z
-    -> W.Chart.Internal.Context x y z
-    -> W.Chart.Internal.RenderAxisYZ a
+    -> W.Chart.Internal.Context msg x y z
+    -> W.Chart.Internal.RenderAxisYZ msg a
     -> List (W.Chart.Internal.DataPoint a)
     -> H.Html msg
 viewAxisHeader attrs ctx axisAttrs dataPoints =
@@ -333,7 +333,7 @@ viewAxisHeader attrs ctx axisAttrs dataPoints =
             ]
 
 
-viewItem : Attributes msg x y z point -> W.Chart.Context x y z -> List (W.Chart.Internal.DataPoint a) -> W.Chart.Internal.DataPoint a -> H.Html msg
+viewItem : Attributes msg x y z point -> W.Chart.Context msg x y z -> List (W.Chart.Internal.DataPoint a) -> W.Chart.Internal.DataPoint a -> H.Html msg
 viewItem attrs ctx pointsByX point =
     H.li
         [ HA.class "w__charts--tooltip-yz--item" ]
@@ -356,7 +356,7 @@ viewItem attrs ctx pointsByX point =
 
 
 view :
-    W.Chart.Context x y z
+    W.Chart.Context msg x y z
     -> W.Chart.Coordinates
     -> List (H.Html msg)
     -> SC.Svg msg

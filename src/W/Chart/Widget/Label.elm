@@ -133,7 +133,7 @@ toPct x =
 view :
     { x : Float
     , y : Float
-    , ctx : W.Chart.Context x y z
+    , ctx : W.Chart.Context msg x y z
     , stroke : Bool
     , color : String
     , label : String
@@ -163,8 +163,8 @@ view props =
 viewList :
     List Attribute
     ->
-        { ctx : W.Chart.Context x y z
-        , axisAttrs : W.Chart.Internal.RenderAxisYZ a
+        { ctx : W.Chart.Context msg x y z
+        , axisAttrs : W.Chart.Internal.RenderAxisYZ msg a
         , points : List ( W.Chart.RenderDatum, List W.Chart.RenderDatum )
         }
     -> SC.Svg msg
@@ -255,7 +255,7 @@ viewBinsList :
     List Attribute
     ->
         { binScale : Scale.BandScale Int
-        , ctx : W.Chart.Context x y z
+        , ctx : W.Chart.Context msg x y z
         , points : List (W.Chart.PointXYZ x y z)
         }
     -> SC.Svg msg
@@ -317,8 +317,8 @@ viewBinsListPoint :
     ->
         { binScale : Scale.BandScale Int
         , binsCount : Int
-        , ctx : W.Chart.Context x y z
-        , axisAttrs : W.Chart.Internal.RenderAxisYZ a
+        , ctx : W.Chart.Context msg x y z
+        , axisAttrs : W.Chart.Internal.RenderAxisYZ msg a
         , x : W.Chart.Point x
         , yz : List (W.Chart.Point a)
         , xIndex : Int
@@ -436,7 +436,7 @@ labelMinWidth =
     80
 
 
-toStep : W.Chart.Context x y z -> Int -> Int
+toStep : W.Chart.Context msg x y z -> Int -> Int
 toStep ctx numPoints =
     (Basics.floor ctx.width // numPoints)
         |> (//) labelMinWidth
@@ -445,7 +445,7 @@ toStep ctx numPoints =
         |> max 1
 
 
-yBinCount : W.Chart.Internal.RenderAxisYZ y -> List (W.Chart.Point y) -> Int
+yBinCount : W.Chart.Internal.RenderAxisYZ msg y -> List (W.Chart.Point y) -> Int
 yBinCount axis yList =
     case List.length yList of
         0 ->
@@ -461,8 +461,8 @@ yBinCount axis yList =
 
 viewStackPoint :
     { attrs : Attributes
-    , ctx : W.Chart.Context x y z
-    , axisAttrs : W.Chart.Internal.RenderAxisYZ a
+    , ctx : W.Chart.Context msg x y z
+    , axisAttrs : W.Chart.Internal.RenderAxisYZ msg a
     , x : Float
     , pointList : List W.Chart.RenderDatum
     }
@@ -525,7 +525,7 @@ viewStackPoint props =
 
 viewPoint :
     { attrs : Attributes
-    , ctx : W.Chart.Context x y z
+    , ctx : W.Chart.Context msg x y z
     , x : Float
     , pointList : List W.Chart.RenderDatum
     , point : W.Chart.RenderDatum

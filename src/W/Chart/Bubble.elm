@@ -131,7 +131,7 @@ fromZ =
 
 
 view :
-    W.Chart.Context x y z
+    W.Chart.Context msg x y z
     -> List (W.Chart.Internal.AxisDataPoints x a)
     ->
         { toRadius : W.Chart.Point x -> W.Chart.Point a -> Float

@@ -4,11 +4,12 @@ module W.Chart exposing
     , stacked, distribution
     , axisLabel, axisLabelPadding
     , defaultValue, safety
-    , ticks, format, formatStack
+    , ticks, format, formatStack, formatLegends
     , noAxisLine, noGridLines
     , AxisAttribute
     , noLabels, dontAutoHideLabels
-    , topLegends, bottomLegends, legendPadding
+    , topLegends, bottomLegends
+    , legendsPadding, legendsPaddingLeft, legendsPaddingRight, legendsPaddingX
     , header, footer
     , annotationsPadding, annotationsPaddingX
     , annotationsTopPadding, annotationsBottomPadding, annotationsLeftPadding, annotationsRightPadding
@@ -41,7 +42,7 @@ module W.Chart exposing
 @docs stacked, distribution
 @docs axisLabel, axisLabelPadding
 @docs defaultValue, safety
-@docs ticks, format, formatStack
+@docs ticks, format, formatStack, formatLegends
 @docs noAxisLine, noGridLines
 @docs AxisAttribute
 
@@ -56,7 +57,8 @@ module W.Chart exposing
 
 ## Legends
 
-@docs topLegends, bottomLegends, legendPadding
+@docs topLegends, bottomLegends
+@docs legendsPadding, legendsPaddingLeft, legendsPaddingRight, legendsPaddingX
 
 
 ## Header (caption) and footer
@@ -223,19 +225,19 @@ type alias ChartAttribute msg =
 
 
 {-| -}
-type alias AxisConfigX x =
-    AxisConfig x x { xAxis : Bool }
+type alias AxisConfigX msg x =
+    AxisConfig msg x x { xAxis : Bool }
 
 
 {-| -}
-type alias AxisConfigYZ x y =
-    AxisConfig x y {}
+type alias AxisConfigYZ msg x y =
+    AxisConfig msg x y {}
 
 
 {-| -}
-type AxisConfig x a constraint
+type AxisConfig msg x a constraint
     = AxisConfig
-        W.Chart.Internal.AxisAttributes
+        (W.Chart.Internal.AxisAttributes msg)
         { data : List a
         , toLabel : a -> String
         , toColor : a -> String
@@ -244,8 +246,8 @@ type AxisConfig x a constraint
 
 
 {-| -}
-type alias AxisAttribute =
-    Attr.Attr W.Chart.Internal.AxisAttributes
+type alias AxisAttribute msg =
+    Attr.Attr (W.Chart.Internal.AxisAttributes msg)
 
 
 {-| -}
@@ -259,8 +261,8 @@ type alias HoverAttribute msg g =
 
 
 {-| -}
-type alias Context x y z =
-    W.Chart.Internal.Context x y z
+type alias Context msg x y z =
+    W.Chart.Internal.Context msg x y z
 
 
 {-| -}
@@ -275,7 +277,7 @@ type alias RenderDatum =
 {-| -}
 fromX :
     List (ChartAttribute msg)
-    -> { x : AxisConfigX x }
+    -> { x : AxisConfigX msg x }
     -> ConfigX msg x
 fromX =
     Attr.withAttrs W.Chart.Internal.defaultAttrs
@@ -300,8 +302,8 @@ fromX =
 fromXY :
     List (ChartAttribute msg)
     ->
-        { x : AxisConfigX x
-        , y : AxisConfigYZ x y
+        { x : AxisConfigX msg x
+        , y : AxisConfigYZ msg x y
         }
     -> ConfigXY msg x y
 fromXY =
@@ -334,9 +336,9 @@ fromXY =
 fromXYZ :
     List (ChartAttribute msg)
     ->
-        { x : AxisConfigX x
-        , y : AxisConfigYZ x y
-        , z : AxisConfigYZ x z
+        { x : AxisConfigX msg x
+        , y : AxisConfigYZ msg x y
+        , z : AxisConfigYZ msg x z
         }
     -> ConfigXYZ msg x y z
 fromXYZ =
@@ -555,9 +557,32 @@ withAnnotationsPadding fn =
 
 {-| Defines the space between legends and the header or footer.
 -}
-legendPadding : Float -> ChartAttribute msg
-legendPadding v =
-    Attr.attr (\a -> { a | legendPadding = Just v })
+legendsPadding : Float -> ChartAttribute msg
+legendsPadding v =
+    withLegendsPadding (\a -> { a | top = Just v, bottom = Just v })
+
+
+{-| -}
+legendsPaddingX : Float -> ChartAttribute msg
+legendsPaddingX v =
+    withLegendsPadding (\a -> { a | left = Just v, right = Just v })
+
+
+{-| -}
+legendsPaddingLeft : Float -> ChartAttribute msg
+legendsPaddingLeft v =
+    withLegendsPadding (\a -> { a | left = Just v })
+
+
+{-| -}
+legendsPaddingRight : Float -> ChartAttribute msg
+legendsPaddingRight v =
+    withLegendsPadding (\a -> { a | right = Just v })
+
+
+withLegendsPadding : (W.Chart.Internal.PaddingOverride -> W.Chart.Internal.PaddingOverride) -> ChartAttribute msg
+withLegendsPadding fn =
+    Attr.attr (\a -> { a | legendsPadding = fn a.legendsPadding })
 
 
 
@@ -641,12 +666,12 @@ groupByXY =
 
 {-| -}
 xAxis :
-    List AxisAttribute
+    List (AxisAttribute msg)
     ->
         { data : List x
         , toLabel : x -> String
         }
-    -> AxisConfigX x
+    -> AxisConfigX msg x
 xAxis =
     Attr.withAttrs W.Chart.Internal.defaultAxisAttributes
         (\attrs props ->
@@ -662,13 +687,13 @@ xAxis =
 
 {-| -}
 axis :
-    List AxisAttribute
+    List (AxisAttribute msg)
     ->
         { label : String
         , color : String
         , toValue : x -> Maybe Float
         }
-    -> AxisConfigYZ x String
+    -> AxisConfigYZ msg x String
 axis =
     Attr.withAttrs W.Chart.Internal.defaultAxisAttributes
         (\attrs props ->
@@ -684,14 +709,14 @@ axis =
 
 {-| -}
 axisList :
-    List AxisAttribute
+    List (AxisAttribute msg)
     ->
         { data : List a
         , toLabel : a -> String
         , toColor : a -> String
         , toValue : a -> x -> Maybe Float
         }
-    -> AxisConfigYZ x a
+    -> AxisConfigYZ msg x a
 axisList =
     Attr.withAttrs W.Chart.Internal.defaultAxisAttributes
         (\attrs props -> AxisConfig attrs props)
@@ -702,55 +727,61 @@ axisList =
 
 
 {-| -}
-axisLabel : String -> AxisAttribute
+axisLabel : String -> AxisAttribute msg
 axisLabel v =
     Attr.attr (\attrs -> { attrs | label = Just v })
 
 
 {-| -}
-axisLabelPadding : Float -> AxisAttribute
+axisLabelPadding : Float -> AxisAttribute msg
 axisLabelPadding v =
     Attr.attr (\attrs -> { attrs | labelPadding = Just v })
 
 
 {-| -}
-defaultValue : Float -> AxisAttribute
+defaultValue : Float -> AxisAttribute msg
 defaultValue v =
     Attr.attr (\attrs -> { attrs | defaultValue = v })
 
 
 {-| -}
-format : (Float -> String) -> AxisAttribute
+format : (Float -> String) -> AxisAttribute msg
 format v =
     Attr.attr (\attrs -> { attrs | format = v })
 
 
 {-| -}
-formatStack : (List Float -> String) -> AxisAttribute
+formatStack : (List Float -> String) -> AxisAttribute msg
 formatStack v =
     Attr.attr (\attrs -> { attrs | formatStack = Just v })
 
 
 {-| -}
-safety : Float -> AxisAttribute
+formatLegends : ({ label : String, color : String, values : List Float } -> List (H.Html msg)) -> AxisAttribute msg
+formatLegends v =
+    Attr.attr (\attrs -> { attrs | legendsFormat = Just v })
+
+
+{-| -}
+safety : Float -> AxisAttribute msg
 safety v =
     Attr.attr (\attrs -> { attrs | safety = v })
 
 
 {-| -}
-ticks : Int -> AxisAttribute
+ticks : Int -> AxisAttribute msg
 ticks v =
     Attr.attr (\attrs -> { attrs | ticks = v })
 
 
 {-| -}
-stacked : AxisAttribute
+stacked : AxisAttribute msg
 stacked =
     Attr.attr (\attrs -> { attrs | stackType = W.Chart.Internal.Stacked })
 
 
 {-| -}
-distribution : AxisAttribute
+distribution : AxisAttribute msg
 distribution =
     Attr.attr (\attrs -> { attrs | stackType = W.Chart.Internal.Distribution })
 
@@ -763,13 +794,13 @@ distribution =
 
 
 {-| -}
-noAxisLine : AxisAttribute
+noAxisLine : AxisAttribute msg
 noAxisLine =
     Attr.attr (\attrs -> { attrs | showAxis = False })
 
 
 {-| -}
-noGridLines : AxisAttribute
+noGridLines : AxisAttribute msg
 noGridLines =
     Attr.attr (\attrs -> { attrs | showGrid = False })
 
@@ -890,7 +921,7 @@ viewTopAnnotations renderData =
                 [ case renderData.attrs.header of
                     Just header_ ->
                         H.figcaption
-                            [ renderData.attrs.legendPadding
+                            [ renderData.attrs.legendsPadding.bottom
                                 |> W.Chart.Internal.maybeFilter (\_ -> renderData.attrs.legendDisplay == W.Chart.Internal.TopLegends)
                                 |> Maybe.map
                                     (\legendPadding_ ->
@@ -948,8 +979,11 @@ viewBottomAnnotations renderData =
                 , case renderData.attrs.footer of
                     Just footer_ ->
                         H.footer
-                            [ renderData.attrs.legendPadding
-                                |> W.Chart.Internal.maybeFilter (\_ -> renderData.attrs.legendDisplay == W.Chart.Internal.BottomLegends)
+                            [ renderData.attrs.legendsPadding.top
+                                |> W.Chart.Internal.maybeFilter
+                                    (\_ ->
+                                        renderData.attrs.legendDisplay == W.Chart.Internal.BottomLegends
+                                    )
                                 |> Maybe.map
                                     (\legendPadding_ ->
                                         HA.style "padding-top" (W.Chart.Internal.toPx legendPadding_)
@@ -966,7 +1000,12 @@ viewBottomAnnotations renderData =
 viewLegends : RenderDataFull msg x y z -> H.Html msg
 viewLegends renderData =
     H.div
-        [ HA.class "w__charts__legends" ]
+        [ HA.class "w__charts__legends"
+        , (\x -> HA.style "padding-left" (W.Chart.Internal.toPx x))
+            |> W.Chart.Internal.maybeAttr renderData.attrs.legendsPadding.left
+        , (\x -> HA.style "padding-right" (W.Chart.Internal.toPx x))
+            |> W.Chart.Internal.maybeAttr renderData.attrs.legendsPadding.right
+        ]
         [ renderData.y
             |> Maybe.map (viewAxisLegends renderData renderData.ctx.y)
             |> Maybe.withDefault (H.text "")
@@ -976,8 +1015,27 @@ viewLegends renderData =
         ]
 
 
-viewAxisLegends : RenderDataFull msg x y z -> W.Chart.Internal.RenderAxisYZ a -> RenderDataYZ x a -> H.Html msg
+viewAxisLegends : RenderDataFull msg x y z -> W.Chart.Internal.RenderAxisYZ msg a -> RenderDataYZ x a -> H.Html msg
 viewAxisLegends chartAttrs axisAttrs axisData =
+    let
+        toLabel :
+            { datum : W.Chart.Internal.ChartDatum a
+            , values : List (W.Chart.Internal.DataPoint a)
+            , stackedValues : List ( Float, Float )
+            }
+            -> List (H.Html msg)
+        toLabel item =
+            case axisAttrs.formatLegends of
+                Just fn ->
+                    fn
+                        { label = axisData.toLabel item.datum.datum
+                        , color = axisData.toColor item.datum.datum
+                        , values = List.map (\x -> x.render.value) item.values
+                        }
+
+                Nothing ->
+                    [ H.text (axisData.toLabel item.datum.datum) ]
+    in
     H.section
         [ HA.class "w__charts__legends__axis" ]
         [ axisAttrs.label
@@ -991,16 +1049,16 @@ viewAxisLegends chartAttrs axisAttrs axisData =
             |> Maybe.withDefault (H.text "")
         , H.div
             [ HA.class "w__charts__legends__list" ]
-            (axisData.data
+            (axisData.values
                 |> List.map
-                    (\y ->
+                    (\item ->
                         H.p [ HA.class "w__charts__legends__item" ]
                             [ H.span
-                                [ HA.style "background" (axisData.toColor y)
+                                [ HA.style "background" (axisData.toColor item.datum.datum)
                                 , HA.class "w__charts__legends__color"
                                 ]
                                 []
-                            , H.span [] [ H.text (axisData.toLabel y) ]
+                            , H.span [] (toLabel item)
                             ]
                     )
             )
@@ -1013,7 +1071,7 @@ viewAxisLegends chartAttrs axisAttrs axisData =
 
 viewWidgets :
     String
-    -> (W.Chart.Internal.WidgetData msg x y z point -> Maybe (Context x y z -> Svg.Svg msg))
+    -> (W.Chart.Internal.WidgetData msg x y z point -> Maybe (Context msg x y z -> Svg.Svg msg))
     -> W.Chart.Internal.RenderData msg x y z
     -> List (W.Chart.Internal.Widget msg x y z point)
     -> SC.Svg msg
@@ -1029,7 +1087,7 @@ viewWidgets class getter (W.Chart.Internal.RenderData { ctx }) widgets =
 
 viewActive :
     W.Chart.Internal.ConfigData msg x y z point
-    -> W.Chart.Internal.Context x y z
+    -> W.Chart.Internal.Context msg x y z
     -> List (W.Chart.Internal.Widget msg x y z point)
     -> SC.Svg msg
 viewActive config ctx widgets =
@@ -1045,7 +1103,7 @@ viewActive config ctx widgets =
 
 viewHoverAndLabels :
     W.Chart.Internal.ConfigData msg x y z point
-    -> W.Chart.Internal.Context x y z
+    -> W.Chart.Internal.Context msg x y z
     -> List (W.Chart.Internal.Widget msg x y z point)
     -> SC.Svg msg
 viewHoverAndLabels config ctx widgets =
@@ -1065,7 +1123,7 @@ viewHoverAndLabels config ctx widgets =
 viewHoverX :
     W.Chart.Internal.ConfigData msg x y z point
     -> W.Chart.Internal.HoverAttrs msg point
-    -> W.Chart.Internal.Context x y z
+    -> W.Chart.Internal.Context msg x y z
     -> List (W.Chart.Internal.Widget msg x y z point)
     -> SC.Svg msg
 viewHoverX config hoverAttrs ctx widgets =
@@ -1113,7 +1171,7 @@ viewHoverX config hoverAttrs ctx widgets =
 viewHoverNearest :
     W.Chart.Internal.ConfigData msg x y z point
     -> W.Chart.Internal.HoverAttrs msg point
-    -> W.Chart.Internal.Context x y z
+    -> W.Chart.Internal.Context msg x y z
     -> List (W.Chart.Internal.Widget msg x y z point)
     -> SC.Svg msg
 viewHoverNearest config hoverAttrs ctx widgets =
@@ -1132,7 +1190,7 @@ viewHoverNearest config hoverAttrs ctx widgets =
 
 
 viewHoverContent :
-    W.Chart.Internal.Context x y z
+    W.Chart.Internal.Context msg x y z
     -> W.Chart.Internal.ChartPoint x y z
     -> point
     -> List (W.Chart.Internal.Widget msg x y z point)
@@ -1146,7 +1204,7 @@ viewHoverContent ctx pointData point widgets =
 
 
 viewChartPointCoords :
-    W.Chart.Internal.Context x y z
+    W.Chart.Internal.Context msg x y z
     -> W.Chart.Internal.ChartPoint x y z
     -> SC.Svg msg
 viewChartPointCoords ctx point =
@@ -1175,7 +1233,7 @@ viewHoverAttrs hoverAttrs pointData point =
 
 
 viewHoverWidgets :
-    Context x y z
+    Context msg x y z
     -> W.Chart.Internal.ChartPoint x y z
     -> point
     -> List (W.Chart.Internal.Widget msg x y z point)
@@ -1286,7 +1344,7 @@ viewYGrid (W.Chart.Internal.RenderData d) =
                             , SA.y1 (ST.px y)
                             , SA.y2 (ST.px y)
                             , SA.strokeWidth (ST.px 1.0)
-                            , Svg.Attributes.stroke W.Theme.Color.tintSubtle
+                            , Svg.Attributes.stroke W.Theme.Color.tint
                             ]
                             []
                     )
@@ -1296,7 +1354,7 @@ viewYGrid (W.Chart.Internal.RenderData d) =
             H.text ""
 
 
-viewXGrid : Context x y z -> SC.Svg msg
+viewXGrid : Context msg x y z -> SC.Svg msg
 viewXGrid ctx =
     if ctx.x.showGrid then
         ctx.points.byX
@@ -1320,7 +1378,7 @@ viewXGrid ctx =
         H.text ""
 
 
-viewXAxis : Context x y z -> SC.Svg msg
+viewXAxis : Context msg x y z -> SC.Svg msg
 viewXAxis ctx =
     if ctx.x.showAxis then
         W.Chart.Internal.viewTranslate
@@ -1336,7 +1394,7 @@ viewXAxis ctx =
                             [ SA.textAnchor ST.AnchorMiddle
                             , SAP.y (ctx.fontSize.sm * 2)
                             , SAP.x xData.x.render.valueScaled
-                            , Svg.Attributes.fill W.Theme.Color.text
+                            , Svg.Attributes.fill W.Theme.Color.textSubtle
                             , SAP.fontSize ctx.fontSize.sm
                             ]
                             [ SC.text xData.x.render.label ]
@@ -1377,7 +1435,7 @@ viewYAxis (W.Chart.Internal.RenderData d) =
                     , SA.y1 (ST.px d.ctx.y.zero)
                     , SA.y2 (ST.px d.ctx.y.zero)
                     , SA.strokeWidth (ST.px 1.0)
-                    , Svg.Attributes.stroke W.Theme.Color.tintStrong
+                    , Svg.Attributes.stroke W.Theme.Color.accent
                     ]
                     []
                 ]
@@ -1628,14 +1686,14 @@ globalStyles =
             .w__charts--x-axis path.domain,
             .w__charts--y-axis path.domain,
             .w__charts--z-axis path.domain {
-                stroke: """ ++ W.Theme.Color.baseTintStrong ++ """;
-                stroke-width: """ ++ String.fromFloat 1 ++ """px;
+                stroke: """ ++ W.Theme.Color.accent ++ """;
+                stroke-width: 1px;
             }
 
             .w__charts--x-axis .tick line,
             .w__charts--y-axis .tick line,
             .w__charts--z-axis .tick line {
-                stroke: """ ++ W.Theme.Color.baseTint ++ """;
+                stroke: """ ++ W.Theme.Color.accent ++ """;
             }
 
             /* Labels */
@@ -1647,9 +1705,9 @@ globalStyles =
             }
 
             .w__charts--labels text {
-                fill: color-mix(in srgb, var(--color), """ ++ W.Theme.Color.baseText ++ """ 50%);
+                fill: color-mix(in srgb, var(--color), """ ++ W.Theme.Color.baseText ++ """ 60%);
                 stroke: """ ++ W.Theme.Color.baseBg ++ """;
-                stroke-width: 3px;
+                stroke-width: 2px;
                 stroke-linejoin: bevel;
                 font-weight: 600;
                 paint-order: stroke;
@@ -1659,8 +1717,9 @@ globalStyles =
             }
 
             .w__charts--labels .w__m-stroke text {
-                fill: #000;
-                stroke: color-mix(in srgb, var(--color), #fff 25%);
+                fill: """ ++ W.Theme.Color.baseBg ++ """;
+                stroke: color-mix(in srgb, var(--color), """ ++ W.Theme.Color.baseText ++ """ 60%);
+                stroke-width: 3px;
             }
 
             /* Annotations */
@@ -1707,6 +1766,11 @@ globalStyles =
                 width: 0.75em;
                 height: 0.75em;
                 border-radius: 0.2em;
+            }
+
+            .w__charts__bar__bar {
+                stroke: color-mix(in srgb, var(--color), #fff 25%);
+                stroke-width: 1px;
             }
 
             /* Animations */

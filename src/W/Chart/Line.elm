@@ -225,7 +225,7 @@ viewHover x ys =
         |> S.g []
 
 
-viewLines : Attributes a msg -> W.Chart.Internal.RenderAxisYZ a -> List ( W.Chart.Internal.ChartDatum a, List ( W.Chart.Internal.DataPoint x, W.Chart.Internal.DataPoint a ) ) -> SC.Svg msg
+viewLines : Attributes a msg -> W.Chart.Internal.RenderAxisYZ msg a -> List ( W.Chart.Internal.ChartDatum a, List ( W.Chart.Internal.DataPoint x, W.Chart.Internal.DataPoint a ) ) -> SC.Svg msg
 viewLines attrs axis axisPoints =
     let
         viewLine_ : Attributes a msg -> Int -> ( W.Chart.Internal.ChartDatum a, List ( W.Chart.Internal.DataPoint x, W.Chart.Internal.DataPoint a ) ) -> SC.Svg msg

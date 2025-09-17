@@ -36,7 +36,7 @@ empty =
 
 
 {-| -}
-fromX : (W.Chart.Context x y z -> Svg.Svg msg) -> W.Chart.WidgetX msg x y z a
+fromX : (W.Chart.Context msg x y z -> Svg.Svg msg) -> W.Chart.WidgetX msg x y z a
 fromX a =
     Widget
         { main = Just a
@@ -48,7 +48,7 @@ fromX a =
 
 
 {-| -}
-fromY : (W.Chart.Context x y z -> Svg.Svg msg) -> W.Chart.WidgetXY msg x y z a
+fromY : (W.Chart.Context msg x y z -> Svg.Svg msg) -> W.Chart.WidgetXY msg x y z a
 fromY a =
     Widget
         { main = Just a
@@ -60,7 +60,7 @@ fromY a =
 
 
 {-| -}
-fromZ : (W.Chart.Context x y z -> Svg.Svg msg) -> W.Chart.WidgetXYZ msg x y z a
+fromZ : (W.Chart.Context msg x y z -> Svg.Svg msg) -> W.Chart.WidgetXYZ msg x y z a
 fromZ a =
     Widget
         { main = Just a
@@ -72,7 +72,7 @@ fromZ a =
 
 
 {-| -}
-fromYZ : (W.Chart.Context x y z -> Svg.Svg msg) -> W.Chart.WidgetXYZ msg x y z a
+fromYZ : (W.Chart.Context msg x y z -> Svg.Svg msg) -> W.Chart.WidgetXYZ msg x y z a
 fromYZ a =
     Widget
         { main = Just a
@@ -89,7 +89,7 @@ fromYZ a =
 
 {-| -}
 withBackground :
-    (W.Chart.Context x y z
+    (W.Chart.Context msg x y z
      -> Svg.Svg msg
     )
     -> Widget msg x y z point
@@ -100,7 +100,7 @@ withBackground v (Widget d) =
 
 {-| -}
 withForeground :
-    (W.Chart.Context x y z
+    (W.Chart.Context msg x y z
      -> Svg.Svg msg
     )
     -> Widget msg x y z point
@@ -111,7 +111,7 @@ withForeground v (Widget d) =
 
 {-| -}
 withLabels :
-    (W.Chart.Context x y z
+    (W.Chart.Context msg x y z
      -> Svg.Svg msg
     )
     -> Widget msg x y z point
@@ -122,7 +122,7 @@ withLabels v (Widget d) =
 
 {-| -}
 withHover :
-    (W.Chart.Context x y z -> W.Chart.Coordinates -> point -> Svg.Svg msg)
+    (W.Chart.Context msg x y z -> W.Chart.Coordinates -> point -> Svg.Svg msg)
     -> Widget msg x y z point
     -> Widget msg x y z point
 withHover v (Widget d) =

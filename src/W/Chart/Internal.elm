@@ -79,11 +79,11 @@ type Widget msg x y z point
 
 
 type alias WidgetData msg x y z point =
-    { main : Maybe (Context x y z -> Svg.Svg msg)
-    , background : Maybe (Context x y z -> Svg.Svg msg)
-    , foreground : Maybe (Context x y z -> Svg.Svg msg)
-    , labels : Maybe (Context x y z -> Svg.Svg msg)
-    , hover : Maybe (Context x y z -> Coordinates -> point -> Svg.Svg msg)
+    { main : Maybe (Context msg x y z -> Svg.Svg msg)
+    , background : Maybe (Context msg x y z -> Svg.Svg msg)
+    , foreground : Maybe (Context msg x y z -> Svg.Svg msg)
+    , labels : Maybe (Context msg x y z -> Svg.Svg msg)
+    , hover : Maybe (Context msg x y z -> Coordinates -> point -> Svg.Svg msg)
     }
 
 
@@ -122,7 +122,7 @@ type alias ChartDatum a =
     }
 
 
-type alias RenderAxisX x =
+type alias RenderAxisX msg x =
     { data : List x
     , scale : Axis.RenderableScale {} (List x) ( Float, Float ) x
     , binScale : Scale.BandScale x
@@ -130,10 +130,11 @@ type alias RenderAxisX x =
     , showAxis : Bool
     , showGrid : Bool
     , format : x -> String
+    , msg : Maybe msg
     }
 
 
-type alias RenderAxisYZ a =
+type alias RenderAxisYZ msg a =
     { data : List a
     , scale : Scale.ContinuousScale Float
     , zero : Float
@@ -143,16 +144,24 @@ type alias RenderAxisYZ a =
     , ticks : Int
     , format : Float -> String
     , formatStack : Maybe (List Float -> String)
+    , formatLegends :
+        Maybe
+            ({ label : String
+             , color : String
+             , values : List Float
+             }
+             -> List (H.Html msg)
+            )
     , showAxis : Bool
     , showGrid : Bool
     }
 
 
 {-| -}
-type alias Context x y z =
-    { x : RenderAxisX x
-    , y : RenderAxisYZ y
-    , z : RenderAxisYZ z
+type alias Context msg x y z =
+    { x : RenderAxisX msg x
+    , y : RenderAxisYZ msg y
+    , z : RenderAxisYZ msg z
     , points : ChartPointDict x y z
     , fontSize : { sm : Float, md : Float, lg : Float }
     , isDebugging : Bool
@@ -221,12 +230,12 @@ type alias RenderDataFull msg x y z =
     , x : RenderDataX x
     , y : Maybe (RenderDataYZ x y)
     , z : Maybe (RenderDataYZ x z)
-    , ctx : Context x y z
+    , ctx : Context msg x y z
     , points : ChartPointDict x y z
     }
 
 
-dataFromCoords : Coordinates -> Context x y z -> Maybe (ChartPoint x y z)
+dataFromCoords : Coordinates -> Context msg x y z -> Maybe (ChartPoint x y z)
 dataFromCoords coords ctx =
     case coords.y of
         Just y ->
@@ -429,6 +438,7 @@ toRenderData cfg xData =
                 , showAxis = cfg.attrs.xAxis.showAxis
                 , showGrid = cfg.attrs.xAxis.showGrid
                 , format = xData.toLabel
+                , msg = Nothing
                 }
             , y =
                 { data = yDataList
@@ -440,6 +450,7 @@ toRenderData cfg xData =
                 , label = cfg.attrs.yAxis.label
                 , format = cfg.attrs.yAxis.format
                 , formatStack = cfg.attrs.yAxis.formatStack
+                , formatLegends = cfg.attrs.yAxis.legendsFormat
                 , showAxis = cfg.attrs.yAxis.showAxis
                 , showGrid = cfg.attrs.yAxis.showGrid
                 }
@@ -453,6 +464,7 @@ toRenderData cfg xData =
                 , label = cfg.attrs.zAxis.label
                 , format = cfg.attrs.zAxis.format
                 , formatStack = cfg.attrs.zAxis.formatStack
+                , formatLegends = cfg.attrs.zAxis.legendsFormat
                 , showAxis = cfg.attrs.zAxis.showAxis
                 , showGrid = cfg.attrs.zAxis.showGrid
                 }
@@ -460,14 +472,14 @@ toRenderData cfg xData =
         }
 
 
-toScale : Spacings -> AxisAttributes -> ( Float, Float ) -> Scale.ContinuousScale Float
+toScale : Spacings -> AxisAttributes msg -> ( Float, Float ) -> Scale.ContinuousScale Float
 toScale spacings axisAttributes domain =
     domain
         |> toDomainWithSafety axisAttributes
         |> toScaleFn spacings axisAttributes
 
 
-toScaleFn : Spacings -> AxisAttributes -> ( Float, Float ) -> Scale.ContinuousScale Float
+toScaleFn : Spacings -> AxisAttributes msg -> ( Float, Float ) -> Scale.ContinuousScale Float
 toScaleFn spacings axisAttributes domain =
     case axisAttributes.scale of
         Linear ->
@@ -477,7 +489,7 @@ toScaleFn spacings axisAttributes domain =
             Scale.log base ( spacings.chart.height, 0 ) domain
 
 
-toDomainWithSafety : AxisAttributes -> ( Float, Float ) -> ( Float, Float )
+toDomainWithSafety : AxisAttributes msg -> ( Float, Float ) -> ( Float, Float )
 toDomainWithSafety axisAttributes domain =
     safeBounds axisAttributes.safety domain
 
@@ -689,15 +701,15 @@ type alias Attributes msg =
         , medium : Float
         , large : Float
         }
-    , xAxis : AxisAttributes
-    , yAxis : AxisAttributes
-    , zAxis : AxisAttributes
+    , xAxis : AxisAttributes msg
+    , yAxis : AxisAttributes msg
+    , zAxis : AxisAttributes msg
     , padding : Padding
     , header : Maybe (List (H.Html msg))
     , footer : Maybe (List (H.Html msg))
     , annotationsPadding : PaddingOverride
     , legendDisplay : LegendDisplay
-    , legendPadding : Maybe Float
+    , legendsPadding : PaddingOverride
     , showLegendAxisLabels : Bool
     , background : String
     , id : Maybe String
@@ -729,13 +741,21 @@ type AxisType
     | AxisZ
 
 
-type alias AxisAttributes =
+type alias AxisAttributes msg =
     { label : Maybe String
     , labelPadding : Maybe Float
     , defaultValue : Float
     , format : Float -> String
     , formatStack : Maybe (List Float -> String)
     , tooltipFormat : Maybe (Float -> String)
+    , legendsFormat :
+        Maybe
+            ({ label : String
+             , color : String
+             , values : List Float
+             }
+             -> List (H.Html msg)
+            )
     , safety : Float
     , ticks : Int
     , scale : ScaleType
@@ -758,7 +778,7 @@ type alias AxisConfig =
     }
 
 
-toAxis : AxisType -> Attributes msg -> AxisAttributes
+toAxis : AxisType -> Attributes msg -> AxisAttributes msg
 toAxis axisType attrs =
     case axisType of
         AxisX ->
@@ -771,7 +791,7 @@ toAxis axisType attrs =
             attrs.zAxis
 
 
-defaultAxisAttributes : AxisAttributes
+defaultAxisAttributes : AxisAttributes msg
 defaultAxisAttributes =
     { label = Nothing
     , labelPadding = Nothing
@@ -779,6 +799,7 @@ defaultAxisAttributes =
     , format = formatFloat
     , formatStack = Nothing
     , tooltipFormat = Nothing
+    , legendsFormat = Nothing
     , safety = 0.1
     , ticks = 5
     , scale = Linear
@@ -817,7 +838,12 @@ defaultAttrs =
         , left = Nothing
         , right = Nothing
         }
-    , legendPadding = Nothing
+    , legendsPadding =
+        { top = Nothing
+        , bottom = Nothing
+        , left = Nothing
+        , right = Nothing
+        }
     , legendDisplay = NoLegends
     , showLegendAxisLabels = False
     , background = "transparent"
@@ -929,7 +955,7 @@ toStackedData :
     { spacings : Spacings
     , xData : DataAttrs x x
     , axisData : DataAttrs x a
-    , axisConfig : AxisAttributes
+    , axisConfig : AxisAttributes msg
     }
     -> RenderDataYZ x a
 toStackedData props =
@@ -1211,7 +1237,7 @@ viewHtml attrs children =
 ---
 
 
-attrAnimationDelayX : Context x y z -> Float -> Svg.Attribute msg
+attrAnimationDelayX : Context msg x y z -> Float -> Svg.Attribute msg
 attrAnimationDelayX ctx xScaled =
     let
         -- This percentage based on both X and Y creates an offset
@@ -1235,7 +1261,7 @@ attrAnimationDelayX ctx xScaled =
     SA.style ("animation-delay:" ++ String.fromFloat delay ++ "s")
 
 
-attrAnimationDelay : Context x y z -> Float -> Float -> Svg.Attribute msg
+attrAnimationDelay : Context msg x y z -> Float -> Float -> Svg.Attribute msg
 attrAnimationDelay ctx xScaled yScaled =
     let
         -- This percentage based on both X and Y creates an offset

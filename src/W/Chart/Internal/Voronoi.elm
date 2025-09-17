@@ -13,7 +13,7 @@ import VoronoiDiagram2d
 import W.Chart.Internal
 
 
-view : (W.Chart.Internal.ChartPoint x y z -> (List (Svg.Attribute msg) -> Svg.Svg msg) -> List (Svg.Svg msg)) -> W.Chart.Internal.Context x y z -> Svg.Svg msg
+view : (W.Chart.Internal.ChartPoint x y z -> (List (Svg.Attribute msg) -> Svg.Svg msg) -> List (Svg.Svg msg)) -> W.Chart.Internal.Context msg x y z -> Svg.Svg msg
 view fn ctx =
     let
         voronoiResult :

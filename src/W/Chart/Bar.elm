@@ -335,7 +335,7 @@ fromYZ =
 -- Helpers
 
 
-viewHover : W.Chart.Internal.RenderAxisYZ a -> Scale.BandScale Int -> W.Chart.Internal.RenderDatum -> List ( Int, W.Chart.Internal.RenderDatum ) -> SC.Svg msg
+viewHover : W.Chart.Internal.RenderAxisYZ msg a -> Scale.BandScale Int -> W.Chart.Internal.RenderDatum -> List ( Int, W.Chart.Internal.RenderDatum ) -> SC.Svg msg
 viewHover axis binScale xPoint yzPoints =
     yzPoints
         |> List.filterMap
@@ -370,7 +370,7 @@ viewHover axis binScale xPoint yzPoints =
         |> S.g []
 
 
-viewBars : W.Chart.Context x y z -> W.Chart.Internal.RenderAxisYZ a -> Attributes eventTarget msg -> Scale.BandScale Int -> List ( Int, W.Chart.Internal.AxisDataPoints x a ) -> (a -> eventTarget) -> SC.Svg msg
+viewBars : W.Chart.Context msg x y z -> W.Chart.Internal.RenderAxisYZ msg a -> Attributes eventTarget msg -> Scale.BandScale Int -> List ( Int, W.Chart.Internal.AxisDataPoints x a ) -> (a -> eventTarget) -> SC.Svg msg
 viewBars ctx axis attrs binScale indexedAxes toEventTarget =
     indexedAxes
         |> List.concatMap
@@ -434,12 +434,14 @@ viewBar :
         , y : Float
         , width : Float
         , height : Float
-        , axis : W.Chart.Internal.RenderAxisYZ a
+        , axis : W.Chart.Internal.RenderAxisYZ msg a
         }
     -> SC.Svg msg
 viewBar attrs props =
     S.rect
-        ([ Svg.Attributes.fill props.color
+        ([ Svg.Attributes.class "w__charts__bar__bar"
+         , Svg.Attributes.style ("--color:" ++ props.color)
+         , Svg.Attributes.fill props.color
          , SAP.x props.x
          , SAP.width props.width
          , SAP.height props.height
@@ -454,7 +456,7 @@ viewBar attrs props =
         []
 
 
-binCount : W.Chart.Internal.RenderAxisYZ a -> Int
+binCount : W.Chart.Internal.RenderAxisYZ msg a -> Int
 binCount axis =
     case List.length axis.data of
         0 ->
@@ -468,7 +470,7 @@ binCount axis =
                 length
 
 
-toIndexedMap : (item -> a) -> W.Chart.Internal.RenderAxisYZ yz -> Int -> List item -> List ( Int, a )
+toIndexedMap : (item -> a) -> W.Chart.Internal.RenderAxisYZ msg yz -> Int -> List item -> List ( Int, a )
 toIndexedMap fn axis offset points =
     if axis.isStacked then
         List.map (\item -> ( offset, fn item )) points
@@ -477,12 +479,12 @@ toIndexedMap fn axis offset points =
         List.indexedMap (\index item -> ( index + offset, fn item )) points
 
 
-toIndexed : W.Chart.Internal.RenderAxisYZ yz -> Int -> List item -> List ( Int, item )
+toIndexed : W.Chart.Internal.RenderAxisYZ msg yz -> Int -> List item -> List ( Int, item )
 toIndexed =
     toIndexedMap identity
 
 
-toBinScale : Attributes a msg -> W.Chart.Context x y z -> Int -> Scale.BandScale Int
+toBinScale : Attributes a msg -> W.Chart.Context msg x y z -> Int -> Scale.BandScale Int
 toBinScale attrs ctx count =
     Scale.band
         { paddingInner = attrs.innerMargin
