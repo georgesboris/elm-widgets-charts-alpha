@@ -151,16 +151,21 @@ mapWithColorsAndOffset offset (Palette paletteLength baseColor colors) fn xs =
                     shade =
                         shades
                             |> Array.get shadeIndex
-                            |> Maybe.withDefault .l60
+                            |> Maybe.withDefault baseShade
                             |> (|>) color
                 in
                 fn shade x
             )
 
 
+baseShade : Color -> String
+baseShade =
+    .l50
+
+
 shades : Array.Array (Color -> String)
 shades =
-    Array.fromList [ .l60, .l40, .l70, .l50, .l30 ]
+    Array.fromList [ .l50, .l60, .l40, .l70, .l80, .l30 ]
 
 
 shadesLength : Int
@@ -188,7 +193,7 @@ colorByIndex (Palette paletteLength baseColor colors) index =
 
         shadeArray : Array.Array (Color -> String)
         shadeArray =
-            shades4
+            shades
 
         shadeIndex : Int
         shadeIndex =
@@ -738,41 +743,3 @@ type alias Color =
     , l80 : String
     , l90 : String
     }
-
-
-baseShade : Color -> String
-baseShade =
-    .l50
-
-
-shades1 : Array.Array (Color -> String)
-shades1 =
-    Array.fromList
-        [ .l50 ]
-
-
-shades2 : Array.Array (Color -> String)
-shades2 =
-    Array.fromList
-        [ .l60
-        , .l30
-        ]
-
-
-shades3 : Array.Array (Color -> String)
-shades3 =
-    Array.fromList
-        [ .l60
-        , .l40
-        , .l30
-        ]
-
-
-shades4 : Array.Array (Color -> String)
-shades4 =
-    Array.fromList
-        [ .l70
-        , .l60
-        , .l40
-        , .l30
-        ]

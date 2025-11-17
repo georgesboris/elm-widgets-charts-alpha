@@ -104,7 +104,7 @@ main =
                                 , toLabel = String.fromInt
                                 , toValue = toValue (\x -> Basics.max 0.7 <| Basics.min 0.9 <| Basics.abs <| Basics.sin x)
                                 , toColor = W.Chart.Colors.colorByIndex
-                                    (W.Chart.Colors.paletteFromPalettes W.Chart.Colors.pink [
+                                    (W.Chart.Colors.paletteFromPalettes W.Chart.Colors.red [
                                         W.Chart.Colors.lime
                                     ])
                                 }
