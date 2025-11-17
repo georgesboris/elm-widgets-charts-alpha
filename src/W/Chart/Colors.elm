@@ -3,6 +3,7 @@ module W.Chart.Colors exposing
     , rainbow, cool, warm
     , mixA, mixB, mixC, mixD, mixE, mixCool, mixWarm
     , amber, blue, cyan, sky, emerald, gray, lime, green, indigo, orange, pink, purple, red, rose, teal, violet, yellow
+    , paletteFromColor, paletteFromPalettes
     , toColors, toColorWithShades
     )
 
@@ -32,6 +33,11 @@ module W.Chart.Colors exposing
 @docs amber, blue, cyan, sky, emerald, gray, lime, green, indigo, orange, pink, purple, red, rose, teal, violet, yellow
 
 
+# Creating Palettes
+
+@docs paletteFromColor, paletteFromPalettes
+
+
 # Palette Utilities
 
 @docs toColors, toColorWithShades
@@ -58,6 +64,34 @@ singleton c =
 fromList : Color -> List Color -> Palette
 fromList c cs =
     Palette (List.length cs + 1) c (Array.fromList (c :: cs))
+
+
+toBaseColor : Palette -> Color
+toBaseColor (Palette _ c _) =
+    c
+
+
+{-| -}
+paletteFromPalettes : Palette -> List Palette -> Palette
+paletteFromPalettes basePalette paletteList =
+    fromList (toBaseColor basePalette) (List.map toBaseColor paletteList)
+
+
+{-| -}
+paletteFromColor :
+    { l10 : String
+    , l20 : String
+    , l30 : String
+    , l40 : String
+    , l50 : String
+    , l60 : String
+    , l70 : String
+    , l80 : String
+    , l90 : String
+    }
+    -> Palette
+paletteFromColor colorShades =
+    fromList colorShades []
 
 
 
