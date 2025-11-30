@@ -46,6 +46,7 @@ module W.Chart.Internal exposing
     , maybeAttr
     , maybeFilter
     , maybeIf
+    , maybeOr
     , toAxis
     , toDataPointsRender
     , toPx
@@ -144,6 +145,7 @@ type alias RenderAxisYZ msg a =
     , ticks : Int
     , format : Float -> String
     , formatStack : Maybe (List Float -> String)
+    , formatLegendValues : Maybe (List Float -> String)
     , formatLegends :
         Maybe
             ({ label : String
@@ -450,6 +452,7 @@ toRenderData cfg xData =
                 , label = cfg.attrs.yAxis.label
                 , format = cfg.attrs.yAxis.format
                 , formatStack = cfg.attrs.yAxis.formatStack
+                , formatLegendValues = cfg.attrs.zAxis.formatLegendValues
                 , formatLegends = cfg.attrs.yAxis.legendsFormat
                 , showAxis = cfg.attrs.yAxis.showAxis
                 , showGrid = cfg.attrs.yAxis.showGrid
@@ -464,6 +467,7 @@ toRenderData cfg xData =
                 , label = cfg.attrs.zAxis.label
                 , format = cfg.attrs.zAxis.format
                 , formatStack = cfg.attrs.zAxis.formatStack
+                , formatLegendValues = cfg.attrs.zAxis.formatLegendValues
                 , formatLegends = cfg.attrs.zAxis.legendsFormat
                 , showAxis = cfg.attrs.zAxis.showAxis
                 , showGrid = cfg.attrs.zAxis.showGrid
@@ -710,7 +714,10 @@ type alias Attributes msg =
     , annotationsPadding : PaddingOverride
     , legendDisplay : LegendDisplay
     , legendsPadding : PaddingOverride
-    , showLegendAxisLabels : Bool
+    , legendsMinWidth : Int
+    , mergeAxisAnnotations : Bool
+    , showLegendsLabels : Bool
+    , showLegendsValues : Bool
     , background : String
     , id : Maybe String
     , onMouseEnter : Maybe msg
@@ -747,6 +754,7 @@ type alias AxisAttributes msg =
     , defaultValue : Float
     , format : Float -> String
     , formatStack : Maybe (List Float -> String)
+    , formatLegendValues : Maybe (List Float -> String)
     , tooltipFormat : Maybe (Float -> String)
     , legendsFormat :
         Maybe
@@ -798,6 +806,7 @@ defaultAxisAttributes =
     , defaultValue = 0.0
     , format = formatFloat
     , formatStack = Nothing
+    , formatLegendValues = Nothing
     , tooltipFormat = Nothing
     , legendsFormat = Nothing
     , safety = 0.1
@@ -844,8 +853,11 @@ defaultAttrs =
         , left = Nothing
         , right = Nothing
         }
+    , legendsMinWidth = 300
     , legendDisplay = NoLegends
-    , showLegendAxisLabels = False
+    , showLegendsLabels = False
+    , showLegendsValues = False
+    , mergeAxisAnnotations = False
     , background = "transparent"
     , id = Nothing
     , onMouseEnter = Nothing
@@ -1318,6 +1330,16 @@ maybeIf predicate m =
 
     else
         Nothing
+
+
+maybeOr : Maybe a -> Maybe a -> Maybe a
+maybeOr fallback m =
+    case m of
+        Nothing ->
+            fallback
+
+        Just _ ->
+            m
 
 
 maybeFilter : (a -> Bool) -> Maybe a -> Maybe a

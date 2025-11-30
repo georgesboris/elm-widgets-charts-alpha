@@ -8,6 +8,7 @@
     "dependencies": {
         "direct": {
             "avh4/elm-color": "1.0.0",
+            "carmonw/elm-number-to-words": "1.0.3",
             "cuducos/elm-format-number": "9.0.1",
             "elm/browser": "1.0.2",
             "elm/core": "1.0.5",

@@ -165,7 +165,7 @@ baseShade =
 
 shades : Array.Array (Color -> String)
 shades =
-    Array.fromList [ .l50, .l60, .l40, .l70, .l80, .l30 ]
+    Array.fromList [ .l60, .l60, .l40, .l70, .l80, .l30 ]
 
 
 shadesLength : Int

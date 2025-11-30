@@ -7,13 +7,12 @@ import FormatNumber
 import FormatNumber.Locales
 import Html as H
 import Html.Attributes as HA
+import NumberToWords
 import Time exposing (Month(..))
 import W.Chart
 import W.Chart.Bar
-import W.Chart.Line
 import W.Chart.Colors
 import W.Chart.Tooltip
-import W.Styles
 import W.Theme
 import W.Theme.Color
 
@@ -69,6 +68,9 @@ main =
                         , W.Chart.dontAutoHideLabels
                         , W.Chart.topLegends
                         , W.Chart.legendsPadding 10
+                        -- , W.Chart.mergeAxisAnnotations
+                        , W.Chart.showLegendsLabels
+                        , W.Chart.showLegendsValues
                         , W.Chart.annotationsPadding 30
                         , W.Chart.header [ H.h1 [] [ H.text "My Chart" ] ]
                         , W.Chart.footer [ H.p [ HA.style "color" W.Theme.Color.baseTextSubtle ] [ H.text "Some footer information." ] ]
@@ -92,21 +94,22 @@ main =
                                 , W.Chart.axisLabelPadding 60
                                 -- , W.Chart.stacked
                                 , W.Chart.format (formatDecimals 4)
-                                , W.Chart.formatLegends (\data -> [ H.text (data.label ++ "!!") ])
-                                , W.Chart.formatStack
+                                , W.Chart.formatList
                                     (\xs ->
                                         xs
                                             |> List.sum
                                             |> formatFloat
                                     )
                                 ]
-                                { data = List.range 0 6
-                                , toLabel = String.fromInt
+                                { data = List.range 4 10
+                                , toLabel = randomName 1
                                 , toValue = toValue (\x -> Basics.max 0.7 <| Basics.min 0.9 <| Basics.abs <| Basics.sin x)
-                                , toColor = W.Chart.Colors.colorByIndex
-                                    (W.Chart.Colors.paletteFromPalettes W.Chart.Colors.red [
-                                        W.Chart.Colors.lime
-                                    ])
+                                , toColor =
+                                    W.Chart.Colors.colorByIndex
+                                        (W.Chart.Colors.paletteFromPalettes W.Chart.Colors.red
+                                            [ W.Chart.Colors.lime
+                                            ]
+                                        )
                                 }
                         , z =
                             W.Chart.axisList
@@ -119,8 +122,8 @@ main =
                                             |> formatFloat
                                     )
                                 ]
-                                { data = List.range 4 6
-                                , toLabel = String.fromInt
+                                { data = List.range 4 10
+                                , toLabel = randomName 10
                                 , toValue = toValue Basics.cos
                                 , toColor = W.Chart.Colors.colorByIndex W.Chart.Colors.cool
                                 }
@@ -131,20 +134,19 @@ main =
                             , W.Chart.onMouseLeave (\_ _ -> OnMouseLeave)
                             ]
                         |> W.Chart.view
-                            [ 
-                              -- W.Chart.Line.fromY [ W.Chart.Line.showLabels ]
+                            [ -- W.Chart.Line.fromY [ W.Chart.Line.showLabels ]
                               -- W.Chart.Bar.fromY [ W.Chart.Bar.showLabels ]
-                             W.Chart.Bar.fromYZ [ W.Chart.Bar.showLabels ]
+                              W.Chart.Bar.fromYZ [ W.Chart.Bar.showLabels ]
                             , W.Chart.Tooltip.fromYZ
                                 [ W.Chart.Tooltip.yAxisLabel [ H.text "YYY" ]
                                 , W.Chart.Tooltip.axisValue
                                     (\_ xs ->
                                         xs
-                                        |> List.map .value
-                                        |> List.sum
-                                        |> formatDecimals 2
-                                        |> H.text
-                                        |> List.singleton
+                                            |> List.map .value
+                                            |> List.sum
+                                            |> formatDecimals 2
+                                            |> H.text
+                                            |> List.singleton
                                     )
                                 , W.Chart.Tooltip.headerValue
                                     (\ctx yList ->
@@ -183,23 +185,42 @@ main =
         }
 
 
+randomName : Float -> Int -> String
+randomName salt_ =
+    let
+        salt : Float
+        salt =
+            max (abs salt_) 0.1
+
+        offset : Int
+        offset =
+            floor salt
+
+        multiplier : Int
+        multiplier =
+            sin salt
+                |> (*) (cos salt * 100)
+                |> round
+    in
+    \index -> NumberToWords.intToWords (offset + (index * multiplier))
+
+
 formatDecimals : Int -> Float -> String
 formatDecimals numDecimals v =
     case String.split "." (String.fromFloat v) of
-        [int, decimals] ->
+        [ int, decimals ] ->
             toDecimals numDecimals int decimals
 
-        [int] ->
+        [ int ] ->
             toDecimals numDecimals int ""
 
         _ ->
             toDecimals numDecimals "0" ""
 
+
 toDecimals : Int -> String -> String -> String
 toDecimals numDecimals int decimals =
     int ++ "." ++ (decimals |> String.left numDecimals |> String.padLeft numDecimals '0')
-
-
 
 
 toValue : (Float -> Float) -> Int -> Date -> Maybe Float
@@ -317,7 +338,10 @@ pctString v =
         |> formatFloat
         |> (\x -> x ++ "%")
 
+
+
 -- Dark Theme
+
 
 darkTheme : W.Theme.Theme
 darkTheme =
@@ -409,6 +433,7 @@ darkTheme =
             , textSubtle = Color.rgb255 170 113 107
             , shadow = Color.rgb255 66 0 0
             }
+
 
 lightTheme : W.Theme.Theme
 lightTheme =
@@ -519,6 +544,7 @@ lightTheme =
             , shadow = Color.rgb255 206 44 49
             }
 
+
 primary100 : Color.Color
 primary100 =
     Color.rgb255 243 244 246
@@ -607,6 +633,7 @@ primary800 =
 primary850 : Color.Color
 primary850 =
     Color.rgb255 30 35 41
+
 
 {-| -}
 grass : W.Theme.Color.ColorScale

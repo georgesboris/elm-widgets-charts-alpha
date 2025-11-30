@@ -4,12 +4,15 @@ module W.Chart exposing
     , stacked, distribution
     , axisLabel, axisLabelPadding
     , defaultValue, safety
-    , ticks, format, formatStack, formatLegends
+    , ticks, format, formatList, formatLegends, formatStack
     , noAxisLine, noGridLines
     , AxisAttribute
-    , noLabels, dontAutoHideLabels
+    , noLabels, dontAutoHideLabels, mergeAxisAnnotations
     , topLegends, bottomLegends
+    , showLegendsLabels, showLegendsValues
+    , formatLegendValues
     , legendsPadding, legendsPaddingLeft, legendsPaddingRight, legendsPaddingX
+    , legendsMinWidth
     , header, footer
     , annotationsPadding, annotationsPaddingX
     , annotationsTopPadding, annotationsBottomPadding, annotationsLeftPadding, annotationsRightPadding
@@ -42,7 +45,7 @@ module W.Chart exposing
 @docs stacked, distribution
 @docs axisLabel, axisLabelPadding
 @docs defaultValue, safety
-@docs ticks, format, formatStack, formatLegends
+@docs ticks, format, formatList, formatLegends, formatStack
 @docs noAxisLine, noGridLines
 @docs AxisAttribute
 
@@ -52,13 +55,16 @@ module W.Chart exposing
 
 ## Labels
 
-@docs noLabels, dontAutoHideLabels
+@docs noLabels, dontAutoHideLabels, mergeAxisAnnotations
 
 
 ## Legends
 
 @docs topLegends, bottomLegends
+@docs showLegendsLabels, showLegendsValues
+@docs formatLegendValues
 @docs legendsPadding, legendsPaddingLeft, legendsPaddingRight, legendsPaddingX
+@docs legendsMinWidth
 
 
 ## Header (caption) and footer
@@ -514,6 +520,23 @@ bottomLegends =
     Attr.attr (\a -> { a | legendDisplay = W.Chart.Internal.BottomLegends })
 
 
+{-| Displays the axis labels on top of the legends.
+-}
+showLegendsLabels : ChartAttribute msg
+showLegendsLabels =
+    Attr.attr (\a -> { a | showLegendsLabels = True })
+
+
+{-| Displays values for each legend to the side of the legend.
+
+Format can be customized through `formatList`.
+
+-}
+showLegendsValues : ChartAttribute msg
+showLegendsValues =
+    Attr.attr (\a -> { a | showLegendsValues = True })
+
+
 {-| -}
 annotationsPadding : Float -> ChartAttribute msg
 annotationsPadding v =
@@ -585,6 +608,12 @@ withLegendsPadding fn =
     Attr.attr (\a -> { a | legendsPadding = fn a.legendsPadding })
 
 
+{-| -}
+legendsMinWidth : Int -> ChartAttribute msg
+legendsMinWidth v =
+    Attr.attr (\a -> { a | legendsMinWidth = v })
+
+
 
 -- Labels
 
@@ -599,6 +628,12 @@ noLabels =
 dontAutoHideLabels : ChartAttribute msg
 dontAutoHideLabels =
     Attr.attr (\attrs -> { attrs | labelsAutoHide = False })
+
+
+{-| -}
+mergeAxisAnnotations : ChartAttribute msg
+mergeAxisAnnotations =
+    Attr.attr (\attrs -> { attrs | mergeAxisAnnotations = True })
 
 
 
@@ -750,16 +785,34 @@ format v =
     Attr.attr (\attrs -> { attrs | format = v })
 
 
-{-| -}
-formatStack : (List Float -> String) -> AxisAttribute msg
-formatStack v =
+{-| Formats lists of values for a given axis.
+
+Used as the default format function for all aggregations.
+
+-}
+formatList : (List Float -> String) -> AxisAttribute msg
+formatList v =
     Attr.attr (\attrs -> { attrs | formatStack = Just v })
+
+
+{-| @deprecated. Use `formatList` instead.
+-}
+formatStack : (List Float -> String) -> AxisAttribute msg
+formatStack =
+    formatList
 
 
 {-| -}
 formatLegends : ({ label : String, color : String, values : List Float } -> List (H.Html msg)) -> AxisAttribute msg
 formatLegends v =
     Attr.attr (\attrs -> { attrs | legendsFormat = Just v })
+
+
+{-| Overrides `formatList` when displaying the values on a legend.
+-}
+formatLegendValues : (List Float -> String) -> AxisAttribute msg
+formatLegendValues v =
+    Attr.attr (\attrs -> { attrs | formatLegendValues = Just v })
 
 
 {-| -}
@@ -1006,13 +1059,81 @@ viewLegends renderData =
         , (\x -> HA.style "padding-right" (W.Chart.Internal.toPx x))
             |> W.Chart.Internal.maybeAttr renderData.attrs.legendsPadding.right
         ]
-        [ renderData.y
-            |> Maybe.map (viewAxisLegends renderData renderData.ctx.y)
-            |> Maybe.withDefault (H.text "")
-        , renderData.z
-            |> Maybe.map (viewAxisLegends renderData renderData.ctx.z)
-            |> Maybe.withDefault (H.text "")
-        ]
+        (if renderData.attrs.mergeAxisAnnotations then
+            [ viewAxisMergedLegends renderData
+            ]
+
+         else
+            [ renderData.y
+                |> Maybe.map (viewAxisLegends renderData renderData.ctx.y)
+                |> Maybe.withDefault (H.text "")
+            , renderData.z
+                |> Maybe.map (viewAxisLegends renderData renderData.ctx.z)
+                |> Maybe.withDefault (H.text "")
+            ]
+        )
+
+
+viewAxisMergedLegends : RenderDataFull msg x y z -> H.Html msg
+viewAxisMergedLegends chartAttrs =
+    Maybe.map2
+        (\yData zData ->
+            let
+                yAttrs =
+                    chartAttrs.ctx.y
+
+                zAttrs =
+                    chartAttrs.ctx.z
+            in
+            H.section
+                [ HA.class "w__charts__legends__axis" ]
+                [ H.div
+                    [ HA.class "w__charts__legends__list" ]
+                    (List.map2
+                        (\yItem zItem ->
+                            H.p [ HA.class "w__charts__legends__item" ]
+                                [ H.span
+                                    [ HA.style "background" (yData.toColor yItem.datum.datum)
+                                    , HA.class "w__charts__legends__color"
+                                    ]
+                                    []
+                                , H.span [ HA.class "w__charts__legends__item__label" ] [ H.text (yData.toLabel yItem.datum.datum) ]
+                                , if chartAttrs.attrs.showLegendsValues then
+                                    yAttrs.formatLegendValues
+                                        |> W.Chart.Internal.maybeOr yAttrs.formatStack
+                                        |> Maybe.map
+                                            (\fn ->
+                                                H.span
+                                                    [ HA.class "w__charts__legends__item__value" ]
+                                                    [ H.text (fn (List.map (\x -> x.render.value) yItem.values)) ]
+                                            )
+                                        |> Maybe.withDefault (H.text "")
+
+                                  else
+                                    H.text ""
+                                , if chartAttrs.attrs.showLegendsValues then
+                                    zAttrs.formatLegendValues
+                                        |> W.Chart.Internal.maybeOr zAttrs.formatStack
+                                        |> Maybe.map
+                                            (\fn ->
+                                                H.span
+                                                    [ HA.class "w__charts__legends__item__value" ]
+                                                    [ H.text (fn (List.map (\x -> x.render.value) zItem.values)) ]
+                                            )
+                                        |> Maybe.withDefault (H.text "")
+
+                                  else
+                                    H.text ""
+                                ]
+                        )
+                        yData.values
+                        zData.values
+                    )
+                ]
+        )
+        chartAttrs.y
+        chartAttrs.z
+        |> Maybe.withDefault (H.text "")
 
 
 viewAxisLegends : RenderDataFull msg x y z -> W.Chart.Internal.RenderAxisYZ msg a -> RenderDataYZ x a -> H.Html msg
@@ -1034,12 +1155,26 @@ viewAxisLegends chartAttrs axisAttrs axisData =
                         }
 
                 Nothing ->
-                    [ H.text (axisData.toLabel item.datum.datum) ]
+                    [ H.span [ HA.class "w__charts__legends__item__label" ] [ H.text (axisData.toLabel item.datum.datum) ]
+                    , if chartAttrs.attrs.showLegendsValues then
+                        axisAttrs.formatLegendValues
+                            |> W.Chart.Internal.maybeOr axisAttrs.formatStack
+                            |> Maybe.map
+                                (\fn ->
+                                    H.span
+                                        [ HA.class "w__charts__legends__item__value" ]
+                                        [ H.text (fn (List.map (\x -> x.render.value) item.values)) ]
+                                )
+                            |> Maybe.withDefault (H.text "")
+
+                      else
+                        H.text ""
+                    ]
     in
     H.section
         [ HA.class "w__charts__legends__axis" ]
         [ axisAttrs.label
-            |> W.Chart.Internal.maybeFilter (\_ -> chartAttrs.attrs.showLegendAxisLabels)
+            |> W.Chart.Internal.maybeFilter (\_ -> chartAttrs.attrs.showLegendsLabels)
             |> Maybe.map
                 (\axisLabel_ ->
                     H.p
@@ -1053,13 +1188,13 @@ viewAxisLegends chartAttrs axisAttrs axisData =
                 |> List.map
                     (\item ->
                         H.p [ HA.class "w__charts__legends__item" ]
-                            [ H.span
+                            (H.span
                                 [ HA.style "background" (axisData.toColor item.datum.datum)
                                 , HA.class "w__charts__legends__color"
                                 ]
                                 []
-                            , H.span [] (toLabel item)
-                            ]
+                                :: toLabel item
+                            )
                     )
             )
         ]
@@ -1705,10 +1840,9 @@ globalStyles =
             }
 
             .w__charts--labels text {
-                fill: color-mix(in srgb, var(--color), """ ++ W.Theme.Color.baseText ++ """ 60%);
+                fill: color-mix(in srgb, var(--color), """ ++ W.Theme.Color.baseText ++ """ 80%);
                 stroke: """ ++ W.Theme.Color.baseBg ++ """;
                 stroke-width: 2px;
-                stroke-linejoin: bevel;
                 font-weight: 600;
                 paint-order: stroke;
                 font-family: var(--theme-font-text), sans-serif;
@@ -1717,8 +1851,8 @@ globalStyles =
             }
 
             .w__charts--labels .w__m-stroke text {
-                fill: """ ++ W.Theme.Color.baseBg ++ """;
-                stroke: color-mix(in srgb, var(--color), """ ++ W.Theme.Color.baseText ++ """ 60%);
+                fill: white;
+                stroke: color-mix(in srgb, var(--color), black 25%);
                 stroke-width: 3px;
             }
 
@@ -1730,12 +1864,27 @@ globalStyles =
 
             .w__charts__legends {
                 display: flex;
+                flex-wrap: wrap;
                 gap: 3em;
                 color: rgb(var(--w-text));
                 font-size: var(--w-charts-font-md);
             }
 
             .w__charts__legends__axis {
+                container-type: inline-size;
+                container-name: w-legends-axis;
+
+                flex-grow: 1;
+
+                &:has(.w__charts__legends__item:nth-child(5)) {
+                    flex-grow: 2;
+                }
+
+                &:has(.w__charts__legends__item:nth-child(10)) {
+                    flex-grow: 3;
+                }
+
+                min-width: 300px;
                 display: flex;
                 flex-direction: column;
                 gap: 0.75em;
@@ -1748,20 +1897,51 @@ globalStyles =
             }
 
             .w__charts__legends__list {
+                --w-legends-cols: 1;
+
                 display: flex;
                 flex-wrap: wrap;
-                gap: 1.75em;
+                column-gap: 1.75em;
+                row-gap: 0.5em;
+
+                &:has(.w__charts__legends__item:nth-child(5)) {
+                    display: grid;
+                    grid-template-columns: repeat(var(--w-legends-cols), minmax(0, 1fr));
+
+                }
+
+                @container w-legends-axis (width > 600px) {
+                  --w-legends-cols: 2;
+                }
+
+                @container w-legends-axis (width > 900px) {
+                  --w-legends-cols: 3;
+                }
+
+                @container w-legends-axis (width > 1200px) {
+                  --w-legends-cols: 4;
+                }
             }
 
             .w__charts__legends__item {
+                flex-grow: 1;
                 margin: 0;
                 display: flex;
-                align-items: center;
-                gap: 8px;
-                line-height: 1;
+                align-items: baseline;
+                gap: 0.75em;
+            }
+
+            .w__charts__legends__item__label {
+                flex-grow: 1;
+            }
+
+            .w__charts__legends__item__value {
+                display: inline-block;
+                color: rgb(var(--w-text-subtle));
             }
 
             .w__charts__legends__color {
+                flex-shrink: 0;
                 display: block;
                 width: 0.75em;
                 height: 0.75em;
