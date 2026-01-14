@@ -1742,7 +1742,13 @@ globalStyles =
             .w__charts--tooltip-yz--label {
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
+            }
+            .w__charts--tooltip-yz--label--label {
+                flex-grow: 1;
+            }
+            .w__charts--tooltip-yz--label--value {
+                flex-shrink: 0;
+                padding-left: 8px;
             }
 
             .w__charts--tooltip-x {
@@ -1802,7 +1808,10 @@ globalStyles =
                 border-radius: 2px;
             }
             .w__charts--tooltip-yz--item-label {
-                padding: 0 8px 0 2px;
+                padding: 0 2px;
+            }
+            .w__charts--tooltip-yz--item-value {
+                padding-left: 8px;
             }
 
             /* Axis & Labels */

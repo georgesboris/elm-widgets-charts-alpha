@@ -89,6 +89,16 @@ fromYZ =
                         if List.isEmpty point.y && List.isEmpty point.z then
                             H.text ""
 
+                        else if ctx.isMergingAnnotations then
+                            view ctx
+                                coords
+                                [ viewX attrs
+                                    ctx
+                                    point.x
+                                    (List.map .render point.y ++ List.map .render point.z)
+                                , viewYZMerged attrs attrs.yConfig ctx point.y point.z
+                                ]
+
                         else
                             view ctx
                                 coords
@@ -300,6 +310,28 @@ viewYZ attrs axis ctx axisAttrs dataPoints =
         |> Maybe.withDefault (H.text "")
 
 
+viewYZMerged :
+    Attributes msg x y z point
+    -> AxisConfig msg x y z
+    -> W.Chart.Internal.Context msg x y z
+    -> List (W.Chart.Internal.DataPoint y)
+    -> List (W.Chart.Internal.DataPoint z)
+    -> H.Html msg
+viewYZMerged attrs axis ctx yDataPoints zDataPoints =
+    List.map2 Tuple.pair yDataPoints zDataPoints
+        |> W.Chart.Internal.maybeIf (not << List.isEmpty)
+        |> Maybe.map
+            (\dataPoints ->
+                H.section
+                    [ HA.class "w__charts--tooltip-yz" ]
+                    [ viewAxisHeaderMerged axis ctx yDataPoints zDataPoints
+                    , H.ul [ HA.class "w__charts--tooltip-yz--list" ]
+                        (List.map (viewItemMerged attrs ctx yDataPoints) dataPoints)
+                    ]
+            )
+        |> Maybe.withDefault (H.text "")
+
+
 viewAxisHeader :
     AxisConfig msg x y z
     -> W.Chart.Internal.Context msg x y z
@@ -316,20 +348,60 @@ viewAxisHeader attrs ctx axisAttrs dataPoints =
             axisLabel_ =
                 case attrs.axisLabel of
                     Just label ->
-                        H.span [] label
+                        H.span [ HA.class "w__charts--tooltip-yz--label--label" ] label
 
                     Nothing ->
-                        H.span [] [ H.text (Maybe.withDefault "" axisAttrs.label) ]
+                        H.span [ HA.class "w__charts--tooltip-yz--label--label" ] [ H.text (Maybe.withDefault "" axisAttrs.label) ]
 
             axisValue_ : H.Html msg
             axisValue_ =
                 attrs.axisValue
-                    |> Maybe.map (\fn -> H.span [] (fn ctx (List.map .render dataPoints)))
+                    |> Maybe.map (\fn -> H.span [ HA.class "w__charts--tooltip-yz--label--value" ] (fn ctx (List.map .render dataPoints)))
                     |> Maybe.withDefault (H.text "")
         in
         H.h2 [ HA.class "w__charts--tooltip-yz--label" ]
             [ axisLabel_
             , axisValue_
+            ]
+
+
+viewAxisHeaderMerged :
+    AxisConfig msg x y z
+    -> W.Chart.Internal.Context msg x y z
+    -> List (W.Chart.Internal.DataPoint y)
+    -> List (W.Chart.Internal.DataPoint z)
+    -> H.Html msg
+viewAxisHeaderMerged attrs ctx yDataPoints zDataPoints =
+    if ctx.y.label == Nothing && attrs.axisLabel == Nothing && attrs.axisValue == Nothing then
+        H.text ""
+
+    else
+        let
+            axisLabel_ : H.Html msg
+            axisLabel_ =
+                case attrs.axisLabel of
+                    Just label ->
+                        H.span [ HA.class "w__charts--tooltip-yz--label--label" ] label
+
+                    Nothing ->
+                        H.span [ HA.class "w__charts--tooltip-yz--label--label" ] [ H.text (Maybe.withDefault "" ctx.y.label) ]
+
+            yAxisValue_ : H.Html msg
+            yAxisValue_ =
+                attrs.axisValue
+                    |> Maybe.map (\fn -> H.span [ HA.class "w__charts--tooltip-yz--label--value" ] (fn ctx (List.map .render yDataPoints)))
+                    |> Maybe.withDefault (H.text "")
+
+            zAxisValue_ : H.Html msg
+            zAxisValue_ =
+                attrs.axisValue
+                    |> Maybe.map (\fn -> H.span [ HA.class "w__charts--tooltip-yz--label--value" ] (fn ctx (List.map .render zDataPoints)))
+                    |> Maybe.withDefault (H.text "")
+        in
+        H.h2 [ HA.class "w__charts--tooltip-yz--label" ]
+            [ axisLabel_
+            , yAxisValue_
+            , zAxisValue_
             ]
 
 
@@ -351,6 +423,37 @@ viewItem attrs ctx pointsByX point =
 
                 Nothing ->
                     [ H.text point.render.valueString ]
+            )
+        ]
+
+
+viewItemMerged : Attributes msg x y z point -> W.Chart.Context msg x y z -> List (W.Chart.Internal.DataPoint y) -> ( W.Chart.Internal.DataPoint y, W.Chart.Internal.DataPoint z ) -> H.Html msg
+viewItemMerged attrs ctx pointsByX ( point, pointZ ) =
+    H.li
+        [ HA.class "w__charts--tooltip-yz--item" ]
+        [ H.span
+            [ HA.class "w__charts--tooltip-yz--item-color"
+            , HA.style "background" point.render.color
+            ]
+            []
+        , H.span [ HA.class "w__charts--tooltip-yz--item-label" ] [ H.text point.render.label ]
+        , H.span
+            [ HA.class "w__charts--tooltip-yz--item-value" ]
+            (case attrs.format of
+                Just format_ ->
+                    format_ ctx (List.map .render pointsByX) point.render
+
+                Nothing ->
+                    [ H.text point.render.valueString ]
+            )
+        , H.span
+            [ HA.class "w__charts--tooltip-yz--item-value" ]
+            (case attrs.format of
+                Just format_ ->
+                    format_ ctx (List.map .render pointsByX) pointZ.render
+
+                Nothing ->
+                    [ H.text pointZ.render.valueString ]
             )
         ]
 

@@ -68,7 +68,7 @@ main =
                         , W.Chart.dontAutoHideLabels
                         , W.Chart.topLegends
                         , W.Chart.legendsPadding 10
-                        -- , W.Chart.mergeAxisAnnotations
+                        , W.Chart.mergeAxisAnnotations
                         , W.Chart.showLegendsLabels
                         , W.Chart.showLegendsValues
                         , W.Chart.annotationsPadding 30

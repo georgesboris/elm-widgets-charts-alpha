@@ -167,6 +167,7 @@ type alias Context msg x y z =
     , points : ChartPointDict x y z
     , fontSize : { sm : Float, md : Float, lg : Float }
     , isDebugging : Bool
+    , isMergingAnnotations : Bool
     , width : Float
     , height : Float
     }
@@ -424,6 +425,7 @@ toRenderData cfg xData =
         , points = points
         , ctx =
             { isDebugging = cfg.attrs.debug
+            , isMergingAnnotations = cfg.attrs.mergeAxisAnnotations
             , width = spacings.chart.width
             , height = spacings.chart.height
             , points = points
