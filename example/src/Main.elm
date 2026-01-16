@@ -90,7 +90,7 @@ main =
                                 }
                         , y =
                             W.Chart.axisList
-                                [ W.Chart.axisLabel "Y Axis"
+                                [ W.Chart.axisLabel "Investments"
                                 , W.Chart.axisLabelPadding 60
                                 -- , W.Chart.stacked
                                 , W.Chart.format (formatDecimals 4)
@@ -113,7 +113,7 @@ main =
                                 }
                         , z =
                             W.Chart.axisList
-                                [ W.Chart.axisLabel "Z Axis"
+                                [ W.Chart.axisLabel "Results"
                                 , W.Chart.distribution
                                 , W.Chart.formatStack
                                     (\xs ->

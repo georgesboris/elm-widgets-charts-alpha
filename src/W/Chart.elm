@@ -1746,9 +1746,19 @@ globalStyles =
             .w__charts--tooltip-yz--label--label {
                 flex-grow: 1;
             }
+            .w__charts--tooltip-yz--label--sep {
+                color: """ ++ W.Theme.Color.baseTextSubtle ++ """;
+                font-weight: normal;
+            }
             .w__charts--tooltip-yz--label--value {
+                box-sizing: border-box;
                 flex-shrink: 0;
                 padding-left: 8px;
+                text-align: right;
+            }
+
+            .w__charts--tooltip-yz--label--value + .w__charts--tooltip-yz--label--value {
+                min-width: 4rem;
             }
 
             .w__charts--tooltip-x {
@@ -1783,6 +1793,17 @@ globalStyles =
                 flex-shrink: 0;
             }
 
+            .w__charts--tooltip-x--value {
+                box-sizing: border-box;
+                flex-shrink: 0;
+                padding-left: 8px;
+                text-align: right;
+            }
+
+            .w__charts--tooltip-x--value + .w__charts--tooltip-x--value {
+                min-width: 4rem;
+            }
+
             .w__charts--tooltip-yz {
                 border-top: 1px solid """ ++ W.Theme.Color.baseTintSubtle ++ """;
                 padding: 0 4px;
@@ -1811,7 +1832,14 @@ globalStyles =
                 padding: 0 2px;
             }
             .w__charts--tooltip-yz--item-value {
+                box-sizing: border-box;
+                flex-shrink: 0;
                 padding-left: 8px;
+                text-align: right;
+            }
+
+            .w__charts--tooltip-yz--item-value + .w__charts--tooltip-yz--item-value {
+                min-width: 4rem;
             }
 
             /* Axis & Labels */
@@ -1849,7 +1877,7 @@ globalStyles =
             }
 
             .w__charts--labels text {
-                fill: color-mix(in srgb, var(--color), """ ++ W.Theme.Color.baseText ++ """ 80%);
+                fill: color-mix(in srgb, var(--color), """ ++ W.Theme.Color.baseText ++ """ 65%);
                 stroke: """ ++ W.Theme.Color.baseBg ++ """;
                 stroke-width: 2px;
                 font-weight: 600;
@@ -1861,7 +1889,7 @@ globalStyles =
 
             .w__charts--labels .w__m-stroke text {
                 fill: white;
-                stroke: color-mix(in srgb, var(--color), black 25%);
+                stroke: color-mix(in srgb, var(--color), black 50%);
                 stroke-width: 3px;
             }
 
